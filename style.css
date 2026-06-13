@@ -279,10 +279,10 @@ canvas {
 /* Difficulty Selector */
 .difficulty-container {
   display: flex;
-  gap: 12px;
+  gap: 8px;
   width: 100%;
   max-width: 480px;
-  margin-bottom: 15px;
+  margin-bottom: 8px;
 }
 
 .diff-card {
@@ -290,7 +290,7 @@ canvas {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 6px;
-  padding: 8px 6px;
+  padding: 6px 5px;
   cursor: pointer;
   transition: all 0.25s ease;
 }
@@ -742,7 +742,7 @@ canvas {
   gap: 10px;
   width: 100%;
   max-width: 500px;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 .playmode-card {
@@ -879,7 +879,10 @@ canvas {
   color: #2b2b35;
 }
 
-#storySettings.hidden {
+#storySettings.hidden,
+#scoreAttackSettings.hidden,
+#shopSettings.hidden,
+#multiplayerSettings.hidden {
   opacity: 0 !important;
   pointer-events: none !important;
   height: 0 !important;
@@ -888,7 +891,10 @@ canvas {
   overflow: hidden !important;
 }
 
-#storySettings:not(.hidden) {
+#storySettings:not(.hidden),
+#scoreAttackSettings:not(.hidden),
+#shopSettings:not(.hidden),
+#multiplayerSettings:not(.hidden) {
   opacity: 1 !important;
   pointer-events: auto !important;
   height: auto !important;
@@ -907,35 +913,21 @@ canvas {
 }
 
 /* Hangar & Shop Grid Layout & Styling */
-#shopSettings.hidden {
-  opacity: 0 !important;
-  pointer-events: none !important;
-  height: 0 !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  overflow: hidden !important;
-}
-
-#shopSettings:not(.hidden) {
-  opacity: 1 !important;
-  pointer-events: auto !important;
-  height: auto !important;
-}
 
 .shop-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
+  gap: 8px;
   width: 100%;
   max-width: 500px;
-  margin-bottom: 15px;
+  margin-bottom: 8px;
 }
 
 .shop-card {
   background: rgba(255, 255, 255, 0.02);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 6px;
-  padding: 14px 10px;
+  padding: 10px 8px;
   text-align: center;
   transition: all 0.25s ease;
   display: flex;
@@ -1132,7 +1124,24 @@ canvas {
 /* Fix main menu title from shifting vertically during tab transitions */
 #menuOverlay {
   justify-content: flex-start;
-  padding-top: 30px;
+  padding-top: 20px; /* Permanently compact padding-top */
+}
+
+#menuOverlay .title {
+  margin-bottom: 15px; /* Permanent standard margin below title */
+}
+
+#shopSettings h2,
+#multiplayerSettings h2 {
+  margin-bottom: 4px; /* Permanently compact h2 margins */
+}
+
+#lobbyMembers {
+  margin-bottom: 6px; /* Permanently compact lobbyMembers margin */
+}
+
+#lobbyGuestWaiting {
+  margin-bottom: 8px; /* Permanently compact waiting message margin */
 }
 
 /* Smooth breathing blink animation for guest lobby waiting text */
@@ -1143,6 +1152,9 @@ canvas {
 .blink-text {
   animation: text-blink 2s infinite ease-in-out;
 }
+
+
+
 
 
 

@@ -426,6 +426,9 @@ function resetLobbyUI() {
   
   const lobbyStartBtn = document.getElementById('lobbyStartButton');
   if (lobbyStartBtn) lobbyStartBtn.style.display = 'none';
+
+  const leaveLobbyBtn = document.getElementById('leaveLobbyButton');
+  if (leaveLobbyBtn) leaveLobbyBtn.style.display = 'none';
   
   updateLobbyModeUI();
   updateLobbyLockUI();
@@ -434,6 +437,9 @@ function resetLobbyUI() {
 function showLobbyActiveUI(isHostFlag) {
   const actionsEl = document.getElementById('lobbyConnectActions');
   if (actionsEl) actionsEl.style.display = 'none';
+  
+  const leaveLobbyBtn = document.getElementById('leaveLobbyButton');
+  if (leaveLobbyBtn) leaveLobbyBtn.style.display = 'block';
   
   if (isHostFlag) {
     const hostEl = document.getElementById('lobbyHostOptions');
@@ -469,6 +475,20 @@ function showLobbyActiveUI(isHostFlag) {
   
   updateLobbyModeUI();
   updateLobbyLockUI();
+}
+
+function leaveMultiplayerLobby() {
+  Sound.playClick();
+  if (socket) {
+    socket.close();
+    socket = null;
+  }
+  isMultiplayer = false;
+  isHost = false;
+  myPlayerIndex = 1;
+  otherPlayers = {};
+  
+  resetLobbyUI();
 }
 
 function toggleLobbyLock() {

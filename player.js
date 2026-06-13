@@ -185,7 +185,9 @@ class Player {
   }
 
   triggerBomb() {
-    if (this.bombs <= 0 || this.lives <= 0) return;
+    if (this.lives <= 0) return;
+    if (isMultiplayer && !isHost) return; // Only room leader can use bombs in multiplayer
+    if (this.bombs <= 0) return;
     this.bombs--;
     updateHUD();
 

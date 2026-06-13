@@ -378,6 +378,12 @@ function buyShip(shipId) {
 }
 
 function selectPlayMode(mode) {
+  if (isMultiplayer && mode !== 'multiplayer') {
+    Sound.playPlayerHit(); // Buzz error sound
+    alert('マルチプレイロビーに入室中は他のモードを選択できません。ロビーから退出（LEAVE LOBBY）してください。');
+    return;
+  }
+
   currentPlayMode = mode;
   Sound.playHover();
 
@@ -441,7 +447,7 @@ function selectPlayMode(mode) {
       if (lockIcon) lockIcon.style.display = 'inline';
     }
     
-    selectScoreAttackType('endless');
+    selectScoreAttackType('endless', false);
     
     setTimeout(() => {
       scoreAttackPanel.style.opacity = '1';
@@ -454,16 +460,16 @@ function selectPlayMode(mode) {
   }
 }
 
-function selectScoreAttackType(type) {
+function selectScoreAttackType(type, playSound = true) {
   const isStoryCleared = localStorage.getItem('danmaku_story_cleared') === 'true';
   if (type === 'boss_rush' && !isStoryCleared) {
-    Sound.playPlayerHit(); // Buzz error sound
+    if (playSound) Sound.playPlayerHit(); // Buzz error sound
     alert("ボスラッシュは、すべてのワールドをクリアすると解放されます！");
     return;
   }
   
   scoreAttackType = type;
-  Sound.playClick();
+  if (playSound) Sound.playClick();
   
   const endlessCard = document.getElementById('scoreEndlessCard');
   const bossRushCard = document.getElementById('scoreBossRushCard');
