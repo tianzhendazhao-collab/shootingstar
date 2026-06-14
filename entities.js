@@ -37,14 +37,16 @@ class Item {
     if (player) {
       const dx = player.x - this.x;
       const dy = player.y - this.y;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      if (dist < 130) {
+      const distSq = dx * dx + dy * dy;
+      if (distSq < 16900) { // 130 * 130
+        const dist = Math.sqrt(distSq); // Only calculate Math.sqrt if close enough
         // Accelerate towards player
         this.vx += (dx / dist) * 0.45;
         this.vy += (dy / dist) * 0.45;
         // Cap speed
-        const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
-        if (speed > 5.5) {
+        const speedSq = this.vx * this.vx + this.vy * this.vy;
+        if (speedSq > 30.25) { // 5.5 * 5.5 = 30.25
+          const speed = Math.sqrt(speedSq);
           this.vx = (this.vx / speed) * 5.5;
           this.vy = (this.vy / speed) * 5.5;
         }

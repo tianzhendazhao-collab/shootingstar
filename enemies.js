@@ -892,21 +892,24 @@ class EnemyBullet {
     this.grazed = false;
     this.bouncesLeft = bouncesLeft;
     this.splitDone = false;
+
+    // Precompute constant speed and perpendicular vectors for Waver bullets to eliminate Math.sqrt updates
+    if (this.type === 'waver') {
+      const speed = Math.sqrt(vx * vx + vy * vy) || 1;
+      this.px = -vy / speed;
+      this.py = vx / speed;
+    }
   }
 
   update() {
     this.timer++;
 
     if (this.type === 'waver') {
-      // Add sign wave sway sideways to their speed vector
-      const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
-      // perpendicular vector
-      const px = -this.vy / (speed || 1);
-      const py = this.vx / (speed || 1);
+      // Add sign wave sway sideways to their speed vector using precomputed normal vectors
       const sway = Math.sin(this.timer * 0.08) * 1.5;
       
-      this.x += this.vx + px * sway;
-      this.y += this.vy + py * sway;
+      this.x += this.vx + this.px * sway;
+      this.y += this.vy + this.py * sway;
     } else if (this.type === 'split' && !this.splitDone) {
       // Slow down, then split into smaller bullets
       this.vx *= 0.92;

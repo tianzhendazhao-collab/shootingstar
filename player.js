@@ -406,21 +406,22 @@ class PlayerHomingMissile {
     this.dead = false;
     this.timer = 0;
     this.color = color;
+    this.speed = Math.sqrt(vx * vx + vy * vy); // Precompute speed
   }
 
   update() {
     this.timer++;
-    // Homing logic: find the closest active enemy or boss
+    // Homing logic: find the closest active enemy or boss using squared distance
     let target = null;
-    let minDist = 999999;
+    let minDistSq = 99999999;
 
     enemies.forEach(e => {
       if (!e.dead && e.y > -10 && e.y < BASE_HEIGHT) {
         const dx = e.x - this.x;
         const dy = e.y - this.y;
-        const dist = Math.sqrt(dx*dx + dy*dy);
-        if (dist < minDist) {
-          minDist = dist;
+        const distSq = dx * dx + dy * dy;
+        if (distSq < minDistSq) {
+          minDistSq = distSq;
           target = e;
         }
       }
@@ -429,9 +430,9 @@ class PlayerHomingMissile {
     if (boss && !boss.dead && gameState === STATES.BOSS_BATTLE) {
       const dx = boss.x - this.x;
       const dy = boss.y - this.y;
-      const dist = Math.sqrt(dx*dx + dy*dy);
-      if (dist < minDist) {
-        minDist = dist;
+      const distSq = dx * dx + dy * dy;
+      if (distSq < minDistSq) {
+        minDistSq = distSq;
         target = boss;
       }
     }
@@ -451,7 +452,7 @@ class PlayerHomingMissile {
       
       const turnSpeed = 0.12; // smooth turn rate
       const newAngle = currentAngle + Math.max(-turnSpeed, Math.min(turnSpeed, angleDiff));
-      const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+      const speed = this.speed; // Use cached speed
       this.vx = Math.cos(newAngle) * speed;
       this.vy = Math.sin(newAngle) * speed;
     }
@@ -476,8 +477,6 @@ class PlayerHomingMissile {
     ctx.arc(this.x, this.y, this.radius - 1, 0, Math.PI * 2);
     ctx.fillStyle = '#ffffff';
     ctx.fill();
-    
-
   }
 }
 
@@ -565,12 +564,14 @@ class PlayerExplosiveBullet {
 
     // Only deal damage if this is not a remote bullet
     if (!this.isRemote) {
-      // Deal damage to all enemies in range
+      const radiusWithEnemy = explosionRadius; // Base range
+      // Deal damage to all enemies in range using squared distance check
       enemies.forEach(e => {
         const dx = e.x - this.x;
         const dy = e.y - this.y;
-        const dist = Math.sqrt(dx*dx + dy*dy);
-        if (dist < explosionRadius + e.width/2) {
+        const distSq = dx * dx + dy * dy;
+        const range = radiusWithEnemy + e.width / 2;
+        if (distSq < range * range) {
           e.takeDamage(explosionDamage);
           if (isMultiplayer) {
             socket.send(JSON.stringify({
@@ -586,8 +587,9 @@ class PlayerExplosiveBullet {
       if (boss && !boss.dead && gameState === STATES.BOSS_BATTLE) {
         const dx = boss.x - this.x;
         const dy = boss.y - this.y;
-        const dist = Math.sqrt(dx*dx + dy*dy);
-        if (dist < explosionRadius + boss.width/2) {
+        const distSq = dx * dx + dy * dy;
+        const range = radiusWithEnemy + boss.width / 2;
+        if (distSq < range * range) {
           boss.takeDamage(explosionDamage);
           if (isMultiplayer) {
             socket.send(JSON.stringify({
@@ -695,17 +697,17 @@ class SummonedDrone {
       return;
     }
 
-    // AI: find nearest enemy/boss to target for shooting directions
+    // AI: find nearest enemy/boss to target for shooting directions using squared distance
     let target = null;
-    let minDist = 999999;
+    let minDistSq = 99999999;
 
     enemies.forEach(e => {
       if (!e.dead && e.y > -10 && e.y < BASE_HEIGHT) {
         const dx = e.x - this.x;
         const dy = e.y - this.y;
-        const dist = Math.sqrt(dx*dx + dy*dy);
-        if (dist < minDist) {
-          minDist = dist;
+        const distSq = dx * dx + dy * dy;
+        if (distSq < minDistSq) {
+          minDistSq = distSq;
           target = e;
         }
       }
@@ -714,9 +716,9 @@ class SummonedDrone {
     if (boss && !boss.dead && gameState === STATES.BOSS_BATTLE) {
       const dx = boss.x - this.x;
       const dy = boss.y - this.y;
-      const dist = Math.sqrt(dx*dx + dy*dy);
-      if (dist < minDist) {
-        minDist = dist;
+      const distSq = dx * dx + dy * dy;
+      if (distSq < minDistSq) {
+        minDistSq = distSq;
         target = boss;
       }
     }
@@ -728,9 +730,10 @@ class SummonedDrone {
       
       const dx = destX - this.x;
       const dy = destY - this.y;
-      const dist = Math.sqrt(dx * dx + dy * dy);
+      const distSq = dx * dx + dy * dy;
       
-      if (dist > 0) {
+      if (distSq > 0) {
+        const dist = Math.sqrt(distSq); // Only calculate Math.sqrt once here
         const accel = 0.15;
         this.vx += (dx / dist) * accel;
         this.vy += (dy / dist) * accel;
@@ -738,8 +741,9 @@ class SummonedDrone {
       
       // Drag/cap speed to make it slowly charge/rush
       const maxSpeed = 2.0;
-      const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
-      if (speed > maxSpeed) {
+      const speedSq = this.vx * this.vx + this.vy * this.vy;
+      if (speedSq > maxSpeed * maxSpeed) {
+        const speed = Math.sqrt(speedSq);
         this.vx = (this.vx / speed) * maxSpeed;
         this.vy = (this.vy / speed) * maxSpeed;
       }
@@ -757,8 +761,8 @@ class SummonedDrone {
         this.vy *= 0.88;
       }
       
-      const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
-      if (speed > 0.2) {
+      const speedSq = this.vx * this.vx + this.vy * this.vy;
+      if (speedSq > 0.04) { // 0.2 * 0.2
         this.angle = Math.atan2(this.vy, this.vx);
       } else {
         this.angle = -Math.PI / 2;

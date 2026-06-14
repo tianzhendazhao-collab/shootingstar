@@ -128,6 +128,11 @@ const SHIPS = {
   drone: { id: 'drone', name: 'DRONE COMMANDER', cost: 12000, desc: 'ミニドローンを召喚し、数秒間敵を自動攻撃。' }
 };
 
+// Cached gradients to prevent CPU rendering bottlenecks
+let spaceBgGrad = null;
+let planetShadowGrad = null; // Shared by Earth and Moon
+let sunShadowGrad = null;
+
 // Background space and planet drawing functions
 function initStars() {
   stars = [];
@@ -153,19 +158,19 @@ function updateStars() {
 }
 
 function drawSpaceBackground() {
-  // Deep space dark blue gradient
-  const bgGrad = ctx.createLinearGradient(0, 0, 0, BASE_HEIGHT);
-  bgGrad.addColorStop(0, '#000008');
-  bgGrad.addColorStop(1, '#000214');
-  ctx.fillStyle = bgGrad;
+  // Deep space dark blue gradient (Cached)
+  if (!spaceBgGrad) {
+    spaceBgGrad = ctx.createLinearGradient(0, 0, 0, BASE_HEIGHT);
+    spaceBgGrad.addColorStop(0, '#000008');
+    spaceBgGrad.addColorStop(1, '#000214');
+  }
+  ctx.fillStyle = spaceBgGrad;
   ctx.fillRect(0, 0, BASE_WIDTH, BASE_HEIGHT);
 
-  // Draw scrolling stars
+  // Draw scrolling stars using fast fillRect instead of expensive arc vector paths
   stars.forEach(s => {
-    ctx.beginPath();
-    ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
     ctx.fillStyle = s.color;
-    ctx.fill();
+    ctx.fillRect(s.x - s.size / 2, s.y - s.size / 2, s.size, s.size);
   });
 
   // Draw Planet based on current world in story mode or default
@@ -238,12 +243,14 @@ function drawEarthBackground() {
   ctx.arc(planetX - 60 + Math.sin(planetAngle * 1.5 + 1.5) * 60, planetY + 40, 40, 0, Math.PI * 2);
   ctx.fill();
 
-  // Shadow overlay (Sunlight coming from top-left)
-  const shadowGrad = ctx.createRadialGradient(planetX - 60, planetY - 60, 10, planetX, planetY, 150);
-  shadowGrad.addColorStop(0, 'rgba(0, 0, 0, 0)');
-  shadowGrad.addColorStop(0.7, 'rgba(0, 0, 0, 0.65)');
-  shadowGrad.addColorStop(1, 'rgba(0, 0, 0, 0.98)');
-  ctx.fillStyle = shadowGrad;
+  // Shadow overlay (Sunlight coming from top-left) (Cached)
+  if (!planetShadowGrad) {
+    planetShadowGrad = ctx.createRadialGradient(planetX - 60, planetY - 60, 10, planetX, planetY, 150);
+    planetShadowGrad.addColorStop(0, 'rgba(0, 0, 0, 0)');
+    planetShadowGrad.addColorStop(0.7, 'rgba(0, 0, 0, 0.65)');
+    planetShadowGrad.addColorStop(1, 'rgba(0, 0, 0, 0.98)');
+  }
+  ctx.fillStyle = planetShadowGrad;
   ctx.beginPath();
   ctx.arc(planetX, planetY, 150, 0, Math.PI * 2);
   ctx.fill();
@@ -301,12 +308,14 @@ function drawMoonBackground() {
   ctx.fill();
   ctx.stroke();
 
-  // Shadow overlay (Sunlight from top-left)
-  const shadowGrad = ctx.createRadialGradient(planetX - 60, planetY - 60, 10, planetX, planetY, 150);
-  shadowGrad.addColorStop(0, 'rgba(0, 0, 0, 0)');
-  shadowGrad.addColorStop(0.7, 'rgba(0, 0, 0, 0.65)');
-  shadowGrad.addColorStop(1, 'rgba(0, 0, 0, 0.98)');
-  ctx.fillStyle = shadowGrad;
+  // Shadow overlay (Sunlight from top-left) (Cached)
+  if (!planetShadowGrad) {
+    planetShadowGrad = ctx.createRadialGradient(planetX - 60, planetY - 60, 10, planetX, planetY, 150);
+    planetShadowGrad.addColorStop(0, 'rgba(0, 0, 0, 0)');
+    planetShadowGrad.addColorStop(0.7, 'rgba(0, 0, 0, 0.65)');
+    planetShadowGrad.addColorStop(1, 'rgba(0, 0, 0, 0.98)');
+  }
+  ctx.fillStyle = planetShadowGrad;
   ctx.beginPath();
   ctx.arc(planetX, planetY, 150, 0, Math.PI * 2);
   ctx.fill();
@@ -358,12 +367,14 @@ function drawSunBackground() {
   ctx.arc(planetX - 15, planetY - 15, 65, 0, Math.PI * 2);
   ctx.fill();
 
-  // Solar shadow and light gradients
-  const shadowGrad = ctx.createRadialGradient(planetX - 45, planetY - 45, 10, planetX, planetY, 150);
-  shadowGrad.addColorStop(0, 'rgba(255, 255, 255, 0.1)');
-  shadowGrad.addColorStop(0.6, 'rgba(0, 0, 0, 0.35)');
-  shadowGrad.addColorStop(1, 'rgba(0, 0, 0, 0.9)');
-  ctx.fillStyle = shadowGrad;
+  // Solar shadow and light gradients (Cached)
+  if (!sunShadowGrad) {
+    sunShadowGrad = ctx.createRadialGradient(planetX - 45, planetY - 45, 10, planetX, planetY, 150);
+    sunShadowGrad.addColorStop(0, 'rgba(255, 255, 255, 0.1)');
+    sunShadowGrad.addColorStop(0.6, 'rgba(0, 0, 0, 0.35)');
+    sunShadowGrad.addColorStop(1, 'rgba(0, 0, 0, 0.9)');
+  }
+  ctx.fillStyle = sunShadowGrad;
   ctx.beginPath();
   ctx.arc(planetX, planetY, 150, 0, Math.PI * 2);
   ctx.fill();

@@ -196,6 +196,38 @@ function gameOver() {
   document.getElementById('finalScoreLose').textContent = score.toLocaleString();
   document.getElementById('finalGrazeLose').textContent = grazeCount;
   document.getElementById('finalWaveLose').textContent = currentWave === 10 && boss ? 'BOSS' : currentWave;
+
+  // Set up button texts and states
+  const retryBtn = document.getElementById('retryLoseButton');
+  const menuBtn = document.getElementById('menuLoseButton');
+  if (isMultiplayer) {
+    if (isHost) {
+      if (retryBtn) {
+        retryBtn.textContent = 'RE-BOOT SYSTEM';
+        retryBtn.disabled = false;
+      }
+      if (menuBtn) {
+        menuBtn.textContent = 'RETURN TO MENU';
+      }
+    } else {
+      if (retryBtn) {
+        retryBtn.textContent = 'WAITING FOR HOST...';
+        retryBtn.disabled = true;
+      }
+      if (menuBtn) {
+        menuBtn.textContent = 'LEAVE ROOM';
+      }
+    }
+  } else {
+    if (retryBtn) {
+      retryBtn.textContent = 'RE-BOOT SYSTEM';
+      retryBtn.disabled = false;
+    }
+    if (menuBtn) {
+      menuBtn.textContent = 'RETURN TO MENU';
+    }
+  }
+
   document.getElementById('gameOverOverlay').classList.remove('hidden');
   const pauseOverlay = document.getElementById('pauseOverlay');
   if (pauseOverlay) pauseOverlay.classList.add('hidden');
@@ -220,6 +252,37 @@ function victory() {
   const goldEl = document.getElementById('victoryGold');
   if (goldEl) {
     goldEl.textContent = `+${goldEarned.toLocaleString()} G`;
+  }
+
+  // Set up button texts and states
+  const retryBtn = document.getElementById('retryWinButton');
+  const menuBtn = document.getElementById('menuWinButton');
+  if (isMultiplayer) {
+    if (isHost) {
+      if (retryBtn) {
+        retryBtn.textContent = 'REPLAY SIMULATION';
+        retryBtn.disabled = false;
+      }
+      if (menuBtn) {
+        menuBtn.textContent = 'RETURN TO MENU';
+      }
+    } else {
+      if (retryBtn) {
+        retryBtn.textContent = 'WAITING FOR HOST...';
+        retryBtn.disabled = true;
+      }
+      if (menuBtn) {
+        menuBtn.textContent = 'LEAVE ROOM';
+      }
+    }
+  } else {
+    if (retryBtn) {
+      retryBtn.textContent = 'REPLAY SIMULATION';
+      retryBtn.disabled = false;
+    }
+    if (menuBtn) {
+      menuBtn.textContent = 'RETURN TO MENU';
+    }
   }
 
   document.getElementById('victoryOverlay').classList.remove('hidden');
@@ -535,6 +598,37 @@ function stageClear() {
     goldEl.textContent = `+${goldEarned.toLocaleString()} G`;
   }
 
+  // Set up button texts and states
+  const nextBtn = document.getElementById('nextStageButton');
+  const menuBtn = document.getElementById('menuClearButton');
+  if (isMultiplayer) {
+    if (isHost) {
+      if (nextBtn) {
+        nextBtn.textContent = 'PROCEED TO NEXT STAGE';
+        nextBtn.disabled = false;
+      }
+      if (menuBtn) {
+        menuBtn.textContent = 'RETURN TO MENU';
+      }
+    } else {
+      if (nextBtn) {
+        nextBtn.textContent = 'WAITING FOR HOST...';
+        nextBtn.disabled = true;
+      }
+      if (menuBtn) {
+        menuBtn.textContent = 'LEAVE ROOM';
+      }
+    }
+  } else {
+    if (nextBtn) {
+      nextBtn.textContent = 'PROCEED TO NEXT STAGE';
+      nextBtn.disabled = false;
+    }
+    if (menuBtn) {
+      menuBtn.textContent = 'RETURN TO MENU';
+    }
+  }
+
   document.getElementById('stageClearOverlay').classList.remove('hidden');
   const pauseOverlay = document.getElementById('pauseOverlay');
   if (pauseOverlay) pauseOverlay.classList.add('hidden');
@@ -542,6 +636,17 @@ function stageClear() {
 
 function proceedToNextStage() {
   Sound.playClick();
+
+  // Send next stage message in multiplayer if we are the host
+  if (isMultiplayer && isHost && socket && socket.readyState === WebSocket.OPEN) {
+    socket.send(JSON.stringify({
+      type: 'nextStage'
+    }));
+  }
+
+  // Reset dead player/resurrect metadata on stage change
+  if (typeof deadPlayerCountdown !== 'undefined') deadPlayerCountdown = {};
+  if (typeof spawnedResurrectShards !== 'undefined') spawnedResurrectShards = {};
 
   // Move to next stage (Stage 1-1 -> 1-2 -> ... -> 2-5 -> 3-1 -> 3-2...)
   const parts = currentStage.split('-');
@@ -678,10 +783,20 @@ function selectStoryStage(stageName) {
   renderStageSelect();
 }
 
+function handleRetry() {
+  if (isMultiplayer) {
+    if (isHost && typeof startMultiplayerGame === 'function') {
+      startMultiplayerGame();
+    }
+  } else {
+    startGame();
+  }
+}
+
 // Bind UI event listeners
 document.getElementById('startButton').addEventListener('click', startGame);
-document.getElementById('retryLoseButton').addEventListener('click', startGame);
-document.getElementById('retryWinButton').addEventListener('click', startGame);
+document.getElementById('retryLoseButton').addEventListener('click', handleRetry);
+document.getElementById('retryWinButton').addEventListener('click', handleRetry);
 document.getElementById('menuLoseButton').addEventListener('click', returnToMenu);
 document.getElementById('menuWinButton').addEventListener('click', returnToMenu);
 document.getElementById('nextStageButton').addEventListener('click', proceedToNextStage);
@@ -769,6 +884,7 @@ window.updateHUD = updateHUD;
 window.renderHUD = renderHUD;
 window.addGold = addGold;
 window.startGame = startGame;
+window.handleRetry = handleRetry;
 window.gameOver = gameOver;
 window.victory = victory;
 window.stageClear = stageClear;

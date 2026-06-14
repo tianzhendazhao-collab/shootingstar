@@ -145,11 +145,19 @@ function update() {
   }
 
   // Update Particles (Limit maximum particles to 120 for GC and render performance)
-  if (particles.length > 120) {
-    particles = particles.slice(particles.length - 120);
+  let activeParticles = [];
+  for (let i = 0; i < particles.length; i++) {
+    const p = particles[i];
+    p.update();
+    if (!p.dead && p.alpha > 0) {
+      activeParticles.push(p);
+    }
   }
-  particles.forEach(p => p.update());
-  particles = particles.filter(p => !p.dead && p.alpha > 0);
+  if (activeParticles.length > 120) {
+    particles = activeParticles.slice(activeParticles.length - 120);
+  } else {
+    particles = activeParticles;
+  }
 
   updateStars();
   planetAngle += 0.0025;
