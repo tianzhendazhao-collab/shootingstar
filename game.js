@@ -7,6 +7,8 @@
 // Telemetry variables
 let lastFpsUpdateTime = 0;
 let frameCountSinceLastUpdate = 0;
+let lastFrameTime = 0;
+const fpsInterval = 1000 / 60; // target ~16.67ms per frame
 
 function updateConnectionTelemetry() {
   const connEl = document.getElementById('telemetryConnection');
@@ -27,35 +29,46 @@ function updateConnectionTelemetry() {
   }
 }
 
-function gameLoop() {
-  const startTime = performance.now();
-  
-  update();
-  draw();
-  
-  const endTime = performance.now();
-  const frameDuration = endTime - startTime;
-  
-  // Update Frame MS HUD
-  const msEl = document.getElementById('telemetryMs');
-  if (msEl) {
-    msEl.textContent = `${Math.round(frameDuration)} ms`;
+function gameLoop(currentTime) {
+  if (!lastFrameTime) {
+    lastFrameTime = currentTime;
   }
   
-  // Calculate FPS
-  frameCountSinceLastUpdate++;
-  const now = performance.now();
-  if (now - lastFpsUpdateTime >= 1000) {
-    const fps = (frameCountSinceLastUpdate * 1000) / (now - lastFpsUpdateTime);
-    const fpsEl = document.getElementById('telemetryFps');
-    if (fpsEl) {
-      fpsEl.textContent = Math.round(fps).toString();
-    }
-    frameCountSinceLastUpdate = 0;
-    lastFpsUpdateTime = now;
+  const elapsed = currentTime - lastFrameTime;
+  
+  if (elapsed >= fpsInterval) {
+    // Keep timing alignment steady by accounting for requestAnimationFrame fluctuations
+    lastFrameTime = currentTime - (elapsed % fpsInterval);
     
-    // Periodically sync the connection state in sidebar
-    updateConnectionTelemetry();
+    const startTime = performance.now();
+    
+    update();
+    draw();
+    
+    const endTime = performance.now();
+    const frameDuration = endTime - startTime;
+    
+    // Update Frame MS HUD
+    const msEl = document.getElementById('telemetryMs');
+    if (msEl) {
+      msEl.textContent = `${Math.round(frameDuration)} ms`;
+    }
+    
+    // Calculate FPS
+    frameCountSinceLastUpdate++;
+    const now = performance.now();
+    if (now - lastFpsUpdateTime >= 1000) {
+      const fps = (frameCountSinceLastUpdate * 1000) / (now - lastFpsUpdateTime);
+      const fpsEl = document.getElementById('telemetryFps');
+      if (fpsEl) {
+        fpsEl.textContent = Math.round(fps).toString();
+      }
+      frameCountSinceLastUpdate = 0;
+      lastFpsUpdateTime = now;
+      
+      // Periodically sync the connection state in sidebar
+      updateConnectionTelemetry();
+    }
   }
   
   requestAnimationFrame(gameLoop);
