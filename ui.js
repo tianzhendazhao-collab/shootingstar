@@ -219,6 +219,7 @@ function victory() {
 
 function toggleSFX() {
   sfxActive = !sfxActive;
+  localStorage.setItem('danmaku_sfx_active', sfxActive);
   const btn = document.getElementById('sfxToggle');
   btn.classList.toggle('active', sfxActive);
   Sound.setSFXEnabled(sfxActive);
@@ -227,6 +228,7 @@ function toggleSFX() {
 
 function toggleBGM() {
   bgmActive = !bgmActive;
+  localStorage.setItem('danmaku_bgm_active', bgmActive);
   const btn = document.getElementById('bgmToggle');
   btn.classList.toggle('active', bgmActive);
   
@@ -758,3 +760,19 @@ window.resumeGame = resumeGame;
 // Initial selection setup on load
 initStars();
 selectPlayMode('story');
+
+// Sync loaded gold & audio settings to UI elements
+const goldEl = document.getElementById('gold');
+if (goldEl) {
+  goldEl.textContent = `${gold.toLocaleString()} G`;
+}
+const sfxBtn = document.getElementById('sfxToggle');
+if (sfxBtn) {
+  sfxBtn.classList.toggle('active', sfxActive);
+}
+const bgmBtn = document.getElementById('bgmToggle');
+if (bgmBtn) {
+  bgmBtn.classList.toggle('active', bgmActive);
+}
+Sound.sfxEnabled = sfxActive;
+Sound.bgmEnabled = bgmActive;

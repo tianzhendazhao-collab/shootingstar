@@ -244,6 +244,7 @@ function handleServerMessage(data) {
           otherPlayers[targetIdx].invincible = true;
         }
         Sound.playClick();
+      }
       break;
     }
     case 'pong': {

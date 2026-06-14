@@ -266,7 +266,9 @@ class Player {
       if (allDead) {
         if (!isMultiplayer || isHost) {
           gameOver();
-          notifyGameStateChange('gameover');
+          if (typeof notifyGameStateChange === 'function') {
+            notifyGameStateChange('gameover');
+          }
         }
       }
     } else {

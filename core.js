@@ -103,8 +103,8 @@ let waveTransitionTimer = 0;
 let warningTimer = 0;
 
 // Audio toggles state
-let sfxActive = true;
-let bgmActive = false;
+let sfxActive = localStorage.getItem('danmaku_sfx_active') !== 'false';
+let bgmActive = localStorage.getItem('danmaku_bgm_active') === 'true';
 
 // Gold and Purchased Ships State
 let gold = parseInt(localStorage.getItem('danmaku_gold')) || 0;
