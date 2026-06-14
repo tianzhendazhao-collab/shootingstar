@@ -176,6 +176,8 @@ function startGame() {
   document.getElementById('gameOverOverlay').classList.add('hidden');
   document.getElementById('victoryOverlay').classList.add('hidden');
   document.getElementById('stageClearOverlay').classList.add('hidden'); // Ensure hidden
+  const pauseOverlay = document.getElementById('pauseOverlay');
+  if (pauseOverlay) pauseOverlay.classList.add('hidden');
 
   updateCanvasBounds(); // Cache initial bounds
 
@@ -195,6 +197,8 @@ function gameOver() {
   document.getElementById('finalGrazeLose').textContent = grazeCount;
   document.getElementById('finalWaveLose').textContent = currentWave === 10 && boss ? 'BOSS' : currentWave;
   document.getElementById('gameOverOverlay').classList.remove('hidden');
+  const pauseOverlay = document.getElementById('pauseOverlay');
+  if (pauseOverlay) pauseOverlay.classList.add('hidden');
 }
 
 function victory() {
@@ -209,6 +213,8 @@ function victory() {
   document.getElementById('finalScoreWin').textContent = score.toLocaleString();
   document.getElementById('finalGrazeWin').textContent = grazeCount;
   document.getElementById('victoryOverlay').classList.remove('hidden');
+  const pauseOverlay = document.getElementById('pauseOverlay');
+  if (pauseOverlay) pauseOverlay.classList.add('hidden');
 }
 
 function toggleSFX() {
@@ -270,6 +276,8 @@ function returnToMenu() {
   document.getElementById('gameOverOverlay').classList.add('hidden');
   document.getElementById('victoryOverlay').classList.add('hidden');
   document.getElementById('stageClearOverlay').classList.add('hidden');
+  const pauseOverlay = document.getElementById('pauseOverlay');
+  if (pauseOverlay) pauseOverlay.classList.add('hidden');
   
   updateCanvasBounds(); // Cache bounds when menu returns
   renderStageSelect(); // Update stage select grid to reflect unlocked stages!
@@ -507,6 +515,8 @@ function stageClear() {
   document.getElementById('stageClearGraze').textContent = grazeCount;
 
   document.getElementById('stageClearOverlay').classList.remove('hidden');
+  const pauseOverlay = document.getElementById('pauseOverlay');
+  if (pauseOverlay) pauseOverlay.classList.add('hidden');
 }
 
 function proceedToNextStage() {
@@ -666,11 +676,62 @@ document.querySelectorAll('.btn-neon, .diff-card, .mode-card, .toggle-container,
   });
 });
 
-// ESC key listener to return to menu from anywhere
+let prePauseState = null;
+
+function pauseGame() {
+  if (gameState === STATES.PAUSED) return;
+  const pauseOverlay = document.getElementById('pauseOverlay');
+  if (!pauseOverlay) return;
+
+  Sound.playClick();
+
+  if (isMultiplayer) {
+    const warningEl = document.getElementById('pauseMultiplayerWarning');
+    if (warningEl) warningEl.style.display = 'block';
+  } else {
+    const warningEl = document.getElementById('pauseMultiplayerWarning');
+    if (warningEl) warningEl.style.display = 'none';
+    prePauseState = gameState;
+    gameState = STATES.PAUSED;
+  }
+
+  pauseOverlay.classList.remove('hidden');
+}
+
+function resumeGame() {
+  const pauseOverlay = document.getElementById('pauseOverlay');
+  if (!pauseOverlay || pauseOverlay.classList.contains('hidden')) return;
+
+  Sound.playClick();
+  pauseOverlay.classList.add('hidden');
+
+  if (!isMultiplayer && prePauseState) {
+    gameState = prePauseState;
+    prePauseState = null;
+  }
+}
+
+// Bind UI buttons for pause overlay
+document.getElementById('resumeButton').addEventListener('click', resumeGame);
+document.getElementById('menuPauseButton').addEventListener('click', () => {
+  Sound.playClick();
+  const pauseOverlay = document.getElementById('pauseOverlay');
+  if (pauseOverlay) pauseOverlay.classList.add('hidden');
+  prePauseState = null;
+  returnToMenu();
+});
+
+// ESC key listener to toggle pause overlay
 window.addEventListener('keydown', (e) => {
   if (e.code === 'Escape') {
     e.preventDefault();
-    returnToMenu();
+
+    const pauseOverlay = document.getElementById('pauseOverlay');
+    if (pauseOverlay && !pauseOverlay.classList.contains('hidden')) {
+      resumeGame();
+    } else if (gameState === STATES.PLAYING || gameState === STATES.BOSS_BATTLE || gameState === STATES.BOSS_WARNING) {
+      pauseGame();
+    }
   }
 });
 
@@ -691,6 +752,8 @@ window.gameOver = gameOver;
 window.victory = victory;
 window.stageClear = stageClear;
 window.proceedToNextStage = proceedToNextStage;
+window.pauseGame = pauseGame;
+window.resumeGame = resumeGame;
 
 // Initial selection setup on load
 initStars();

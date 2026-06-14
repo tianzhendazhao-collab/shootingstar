@@ -19,8 +19,6 @@ class Enemy {
       fireRateMult *= (1.0 + Math.floor((currentWave - 1) / 10) * 0.1);
     }
 
-
-
     // Story mode stage difficulty scaling
     if (currentPlayMode === 'story') {
       const parts = currentStage.split('-');
@@ -136,9 +134,6 @@ class Enemy {
         this.vx = (Math.random() * 2 - 1) * 0.8;
         this.suicideTimer = 180; // 3 seconds to detonate
         break;
-
-
-
       case 'splitter': // magenta, fires splitting bullets
         this.width = 32;
         this.height = 32;
@@ -189,7 +184,6 @@ class Enemy {
         this.maxShieldHp = this.shieldHp;
         break;
     }
-
     this.hp = this.maxHp;
     this.shootCooldown = Math.random() * 30 + 10; // offset fire timers
   }
@@ -828,11 +822,7 @@ class Enemy {
           ctx.fillStyle = '#1a0500';
         }
         break;
-
-
-
-      case 'splitter':
-        // Butterfly shape
+      case 'splitter': // butterfly shape
         ctx.moveTo(this.x - 15, this.y - 12);
         ctx.lineTo(this.x, this.y - 2);
         ctx.lineTo(this.x + 15, this.y - 12);
@@ -1059,18 +1049,8 @@ class Boss {
       this.color = '#ff007f';
     }
 
-    // Base Hp scaling by phase and difficulty
-    this.hpPerPhase = {
-      1: 400,
-      2: 500,
-      3: 600,
-      4: 700,
-      5: 850
-    };
-    
-    // Multiply by loop in endless
-    const loopMult = 1.0 + (loopCount - 1) * 0.25;
-    this.maxHp = Math.round(this.hpPerPhase[1] * loopMult);
+    // Base Hp is 500 for all phases (no increase per phase or endless loops)
+    this.maxHp = 500;
     this.hp = this.maxHp;
 
     // Movement speeds
@@ -1126,9 +1106,8 @@ class Boss {
         this.color = colors[this.currentPhase] || '#ff007f';
       }
 
-      // Refill Hp for next phase
-      const loopMult = 1.0 + (loopCount - 1) * 0.25;
-      this.maxHp = Math.round(this.hpPerPhase[this.currentPhase] * loopMult);
+      // Refill Hp for next phase (all phases have the same 500 HP)
+      this.maxHp = 500;
       this.hp = this.maxHp;
       this.timer = 0;
 
@@ -1152,6 +1131,27 @@ class Boss {
   }
 
   bossDefeated() {
+    // Spawn HP item in Boss Rush when boss is defeated (Only on Host in multiplayer)
+    if (currentPlayMode === 'score_attack' && scoreAttackType === 'boss_rush') {
+      if (!isMultiplayer || isHost) {
+        const itemId = 'item_' + nextItemId++;
+        const newItem = new Item(this.x, this.y, 'heal', '#39ff14');
+        newItem.id = itemId;
+        items.push(newItem);
+        
+        if (isMultiplayer && socket && socket.readyState === WebSocket.OPEN) {
+          socket.send(JSON.stringify({
+            type: 'spawnItem',
+            itemId: itemId,
+            itemType: 'heal',
+            color: '#39ff14',
+            x: this.x,
+            y: this.y
+          }));
+        }
+      }
+    }
+
     // Award gold for boss defeat: 1500 G
     addGold(1500, this.x, this.y);
     // Normal/Hard Victory or Story Mode Victory

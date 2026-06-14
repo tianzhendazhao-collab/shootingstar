@@ -13,6 +13,26 @@ class Item {
   }
 
   update() {
+    if (this.type.startsWith('resurrect_')) {
+      // Special flight/float behavior for resurrection shards
+      if (!this.targetY) {
+        this.targetY = 200 + Math.random() * 300; // Hover in play area
+        this.floatTimer = 0;
+        this.vy = 3.0; // Fly down speed
+      }
+      
+      this.floatTimer++;
+      
+      if (this.y < this.targetY) {
+        this.y += this.vy;
+      } else {
+        // Pulse float in place
+        this.y = this.targetY + Math.sin(this.floatTimer * 0.05) * 15;
+        this.x += Math.sin(this.floatTimer * 0.02) * 0.5;
+      }
+      return; // Skip normal item physics
+    }
+
     // Magnet effect pulling towards player if close
     if (player) {
       const dx = player.x - this.x;
@@ -48,6 +68,44 @@ class Item {
   }
 
   draw() {
+    if (this.type.startsWith('resurrect_')) {
+      ctx.save();
+      ctx.shadowBlur = 15;
+      ctx.shadowColor = this.color;
+      
+      ctx.beginPath();
+      // Diamond shape
+      ctx.moveTo(this.x, this.y - 14);
+      ctx.lineTo(this.x + 10, this.y);
+      ctx.lineTo(this.x, this.y + 14);
+      ctx.lineTo(this.x - 10, this.y);
+      ctx.closePath();
+      ctx.strokeStyle = '#ffffff';
+      ctx.fillStyle = this.color;
+      ctx.lineWidth = 2;
+      ctx.fill();
+      ctx.stroke();
+      
+      // Pulsing outer ring
+      const pulse = 14 + Math.sin(Date.now() * 0.006) * 4;
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, pulse, 0, Math.PI * 2);
+      ctx.strokeStyle = this.color;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      
+      // Player index text
+      ctx.font = "900 10px 'Orbitron'";
+      ctx.fillStyle = '#ffffff';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      const pNum = this.type.split('_')[1].toUpperCase(); // 'P1', 'P2', etc.
+      ctx.fillText(pNum, this.x, this.y);
+      
+      ctx.restore();
+      return; // Skip normal item drawing
+    }
+
     ctx.beginPath();
     ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
     ctx.fillStyle = this.color;
@@ -322,7 +380,8 @@ function checkCollisions() {
   }
 
   // 4. Player vs Items
-  items.forEach(item => {
+  if (player && player.lives > 0) {
+    items.forEach(item => {
     const dx = player.x - item.x;
     const dy = player.y - item.y;
     const distSq = dx * dx + dy * dy;
@@ -344,6 +403,12 @@ function checkCollisions() {
         player.shieldTimer = Math.max(player.shieldTimer, 300); // 5 seconds (300 frames)
         particles.push(new ScoreText(player.x, player.y - 20, "SHIELD ACTIVE!", '#00ffff', 1.25));
         score += 500;
+      } else if (item.type.startsWith('resurrect_')) {
+        const pIdxStr = item.type.split('_')[1]; // 'p1', 'p2' etc.
+        const targetPIdx = parseInt(pIdxStr.replace('p', ''));
+        if (typeof resurrectPlayer === 'function') {
+          resurrectPlayer(targetPIdx);
+        }
       }
 
       if (isMultiplayer && socket && socket.readyState === WebSocket.OPEN) {
@@ -354,6 +419,7 @@ function checkCollisions() {
       }
 
       updateHUD();
-    }
-  });
+     }
+    });
+  }
 }

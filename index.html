@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CYBER DANMAKU - 極限弾幕シューティング</title>
-  <link rel="stylesheet" href="style.css?v=1.7">
+  <title>shooting star</title>
+  <link rel="stylesheet" href="style.css?v=1.8">
 </head>
 <body>
   <!-- Animated Cyber Grid Background -->
@@ -101,11 +101,9 @@
           <div class="difficulty-container" style="display: flex; gap: 12px; width: 100%; max-width: 480px; margin-bottom: 15px;">
             <div class="diff-card endless selected" id="scoreEndlessCard" onclick="selectScoreAttackType('endless')">
               <h3>ENDLESS</h3>
-              <p>無限のウェーブが続くスコアアタック</p>
             </div>
             <div class="diff-card boss_rush" id="scoreBossRushCard" onclick="selectScoreAttackType('boss_rush')">
               <h3>BOSS RUSH <span id="bossRushLockIcon">🔒</span></h3>
-              <p>1〜3面のボスと連続バトル</p>
             </div>
           </div>
         </div>
@@ -266,6 +264,23 @@
         </div>
       </div>
 
+      <!-- Overlay: Pause / Interruption Overlay -->
+      <div class="overlay hidden" id="pauseOverlay">
+        <div class="overlay-title victory" style="color: var(--cyan); text-shadow: 0 0 15px var(--cyan-glow);">SYSTEM PAUSED</div>
+        <div class="subtitle" id="pauseSubtitle">一 時 中 断</div>
+
+        <!-- Warning message for multiplayer -->
+        <div id="pauseMultiplayerWarning" style="display: none; font-family: var(--font-mono); color: var(--magenta); font-size: 0.85rem; margin-top: -30px; margin-bottom: 30px; text-shadow: 0 0 5px var(--magenta-glow); max-width: 400px; line-height: 1.4;">
+          ※マルチプレイ中につき、ゲームは一時停止していません！<br>
+          (ホストが退出するとルームは解散されます)
+        </div>
+
+        <div class="overlay-buttons" style="display: flex; flex-direction: column; gap: 15px; width: 100%; max-width: 300px; align-items: center;">
+          <button class="btn-neon" id="resumeButton" style="width: 100%; font-size: 1.05rem; padding: 12px 25px;">RESUME SYSTEM</button>
+          <button class="btn-neon btn-secondary" id="menuPauseButton" style="width: 100%; font-size: 1.05rem; padding: 12px 25px;">RETURN TO MENU</button>
+        </div>
+      </div>
+
     </div>
 
     <!-- Right Sidebar: System Control & Audio Panel -->
@@ -288,6 +303,29 @@
             <span class="toggle-label">SYNTH BGM</span>
           </div>
         </div>
+
+        <!-- Telemetry Panel -->
+        <div class="audio-panel-header" style="font-family: var(--font-title); color: var(--magenta); font-size: 0.95rem; margin-top: 25px; margin-bottom: 15px; letter-spacing: 1px; text-shadow: 0 0 8px var(--magenta-glow); border-bottom: 1px solid rgba(255, 0, 127, 0.2); padding-bottom: 8px;">
+          TELEMETRY
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px; font-family: var(--font-title); font-size: 0.78rem;">
+          <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed rgba(255, 255, 255, 0.05); padding-bottom: 6px;">
+            <span style="color: #777799;">FPS</span>
+            <span id="telemetryFps" style="color: #39ff14; text-shadow: 0 0 8px rgba(57, 255, 20, 0.4); font-weight: bold;">--</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed rgba(255, 255, 255, 0.05); padding-bottom: 6px;">
+            <span style="color: #777799;">FRAME MS</span>
+            <span id="telemetryMs" style="color: #ffd700; text-shadow: 0 0 8px rgba(255, 215, 0, 0.4); font-weight: bold;">-- ms</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed rgba(255, 255, 255, 0.05); padding-bottom: 6px;">
+            <span style="color: #777799;">CONNECTION</span>
+            <span id="telemetryConnection" style="color: #00ffff; text-shadow: 0 0 8px rgba(0, 255, 255, 0.4); font-weight: bold;">OFFLINE</span>
+          </div>
+          <div id="telemetryPingRow" style="display: none; justify-content: space-between; border-bottom: 1px dashed rgba(255, 255, 255, 0.05); padding-bottom: 6px;">
+            <span style="color: #777799;">PING RTT</span>
+            <span id="telemetryPing" style="color: #ff00ff; text-shadow: 0 0 8px rgba(255, 0, 255, 0.4); font-weight: bold;">-- ms</span>
+          </div>
+        </div>
       </div>
       
       <!-- Moved game-info description -->
@@ -306,13 +344,13 @@
   </div>
 
   <!-- Load Audio and Game scripts sequentially -->
-  <script src="sound.js?v=1.7"></script>
-  <script src="core.js?v=1.7"></script>
-  <script src="multiplayer.js?v=1.7"></script>
-  <script src="entities.js?v=1.7"></script>
-  <script src="player.js?v=1.7"></script>
-  <script src="enemies.js?v=1.7"></script>
-  <script src="ui.js?v=1.7"></script>
-  <script src="game.js?v=1.7"></script>
+  <script src="sound.js?v=1.8"></script>
+  <script src="core.js?v=1.8"></script>
+  <script src="multiplayer.js?v=1.8"></script>
+  <script src="entities.js?v=1.8"></script>
+  <script src="player.js?v=1.8"></script>
+  <script src="enemies.js?v=1.8"></script>
+  <script src="ui.js?v=1.8"></script>
+  <script src="game.js?v=1.8"></script>
 </body>
 </html>

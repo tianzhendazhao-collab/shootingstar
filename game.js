@@ -4,13 +4,65 @@
 // MAIN LOOP RUNNER
 // ----------------------------------------------------
 
+// Telemetry variables
+let lastFpsUpdateTime = 0;
+let frameCountSinceLastUpdate = 0;
+
+function updateConnectionTelemetry() {
+  const connEl = document.getElementById('telemetryConnection');
+  const pingRow = document.getElementById('telemetryPingRow');
+  if (!connEl) return;
+  
+  if (isMultiplayer) {
+    const activeCount = lobbyPlayers.length;
+    connEl.textContent = `ONLINE (${activeCount}/4)`;
+    connEl.style.color = '#00ffff';
+    connEl.style.textShadow = '0 0 8px rgba(0, 255, 255, 0.4)';
+    if (pingRow) pingRow.style.display = 'flex';
+  } else {
+    connEl.textContent = 'OFFLINE';
+    connEl.style.color = '#777799';
+    connEl.style.textShadow = 'none';
+    if (pingRow) pingRow.style.display = 'none';
+  }
+}
+
 function gameLoop() {
+  const startTime = performance.now();
+  
   update();
   draw();
+  
+  const endTime = performance.now();
+  const frameDuration = endTime - startTime;
+  
+  // Update Frame MS HUD
+  const msEl = document.getElementById('telemetryMs');
+  if (msEl) {
+    msEl.textContent = `${Math.round(frameDuration)} ms`;
+  }
+  
+  // Calculate FPS
+  frameCountSinceLastUpdate++;
+  const now = performance.now();
+  if (now - lastFpsUpdateTime >= 1000) {
+    const fps = (frameCountSinceLastUpdate * 1000) / (now - lastFpsUpdateTime);
+    const fpsEl = document.getElementById('telemetryFps');
+    if (fpsEl) {
+      fpsEl.textContent = Math.round(fps).toString();
+    }
+    frameCountSinceLastUpdate = 0;
+    lastFpsUpdateTime = now;
+    
+    // Periodically sync the connection state in sidebar
+    updateConnectionTelemetry();
+  }
+  
   requestAnimationFrame(gameLoop);
 }
 
 // Start game loop immediately
+lastFpsUpdateTime = performance.now();
 requestAnimationFrame(gameLoop);
 
 // ----------------------------------------------------
@@ -62,6 +114,10 @@ canvas.addEventListener('click', (e) => {
 // ----------------------------------------------------
 
 function update() {
+  if (gameState === STATES.PAUSED) {
+    return;
+  }
+
   // Screenshake decay
   if (shakeTime > 0) {
     shakeTime--;
@@ -91,6 +147,10 @@ function update() {
           op.shieldTimer--;
         }
       });
+      
+      if (isHost && typeof updateMultiplayerResurrections === 'function') {
+        updateMultiplayerResurrections();
+      }
     }
 
     playerBullets.forEach(b => b.update());

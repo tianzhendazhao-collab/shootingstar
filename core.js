@@ -18,7 +18,8 @@ const STATES = {
   BOSS_BATTLE: 'boss_battle',
   STAGE_CLEAR: 'stage_clear',
   GAMEOVER: 'gameover',
-  VICTORY: 'victory'
+  VICTORY: 'victory',
+  PAUSED: 'paused'
 };
 
 let gameState = STATES.MENU;

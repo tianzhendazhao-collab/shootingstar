@@ -2,6 +2,34 @@
 
 let isLobbyLocked = false;
 let lobbyGameMode = 'story';
+let deadPlayerCountdown = {};
+let spawnedResurrectShards = {};
+
+// Telemetry Ping variables
+let pingIntervalId = null;
+let lastPingSentTime = 0;
+
+function startPingTimer() {
+  if (pingIntervalId) clearInterval(pingIntervalId);
+  
+  pingIntervalId = setInterval(() => {
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      lastPingSentTime = performance.now();
+      socket.send(JSON.stringify({
+        type: 'ping'
+      }));
+    }
+  }, 2000);
+}
+
+function stopPingTimer() {
+  if (pingIntervalId) {
+    clearInterval(pingIntervalId);
+    pingIntervalId = null;
+  }
+  const pingEl = document.getElementById('telemetryPing');
+  if (pingEl) pingEl.textContent = '-- ms';
+}
 
 function connectWebSocket(onConnectCallback) {
   if (socket) {
@@ -17,6 +45,7 @@ function connectWebSocket(onConnectCallback) {
   socket.onopen = () => {
     console.log('WebSocket connected to', wsUrl);
     if (onConnectCallback) onConnectCallback();
+    startPingTimer();
   };
 
   socket.onmessage = (event) => {
@@ -37,6 +66,7 @@ function connectWebSocket(onConnectCallback) {
 
   socket.onclose = () => {
     console.log('WebSocket connection closed');
+    stopPingTimer();
     if (isMultiplayer && gameState !== STATES.MENU) {
       alert('サーバーとの接続が切断されました。');
       returnToMenu();
@@ -195,6 +225,36 @@ function handleServerMessage(data) {
     case 'nextStage':
       proceedToNextStage();
       break;
+
+    case 'resurrect': {
+      const targetIdx = data.targetPlayerIndex;
+      items = items.filter(item => item.type !== 'resurrect_p' + targetIdx);
+      if (targetIdx === myPlayerIndex) {
+        if (player) {
+          player.lives = 1;
+          player.invincible = true;
+          player.invincibleTimer = 120;
+          player.shieldTimer = 0;
+        }
+        Sound.playVictory();
+        updateHUD();
+      } else {
+        if (otherPlayers[targetIdx]) {
+          otherPlayers[targetIdx].lives = 1;
+          otherPlayers[targetIdx].invincible = true;
+        }
+        Sound.playClick();
+      break;
+    }
+    case 'pong': {
+      const now = performance.now();
+      const rtt = now - lastPingSentTime;
+      const pingEl = document.getElementById('telemetryPing');
+      if (pingEl) {
+        pingEl.textContent = `${Math.round(rtt)} ms`;
+      }
+      break;
+    }
   }
 }
 
@@ -294,6 +354,8 @@ function startMultiplayerMatch(gameMode = 'story') {
   waveTransitionTimer = 0;
   nextEnemyId = 0;
   nextItemId = 0;
+  deadPlayerCountdown = {};
+  spawnedResurrectShards = {};
 
   // Setup gameplay parameters based on mode selected in lobby
   bossRushIndex = 1;
@@ -343,6 +405,8 @@ function startMultiplayerMatch(gameMode = 'story') {
   document.getElementById('gameOverOverlay').classList.add('hidden');
   document.getElementById('victoryOverlay').classList.add('hidden');
   document.getElementById('stageClearOverlay').classList.add('hidden');
+  const pauseOverlay = document.getElementById('pauseOverlay');
+  if (pauseOverlay) pauseOverlay.classList.add('hidden');
 
   updateCanvasBounds();
 
@@ -479,6 +543,7 @@ function showLobbyActiveUI(isHostFlag) {
 
 function leaveMultiplayerLobby() {
   Sound.playClick();
+  stopPingTimer();
   if (socket) {
     socket.close();
     socket = null;
@@ -565,3 +630,103 @@ function updateLobbyModeUI() {
     guestModeText.textContent = modeLabel;
   }
 }
+
+function resurrectPlayer(playerIndex) {
+  if (!isMultiplayer) return;
+
+  items = items.filter(item => item.type !== 'resurrect_p' + playerIndex);
+
+  if (playerIndex === myPlayerIndex) {
+    if (player) {
+      player.lives = 1;
+      player.invincible = true;
+      player.invincibleTimer = 120;
+      player.shieldTimer = 0;
+    }
+    Sound.playVictory();
+    updateHUD();
+  } else {
+    if (otherPlayers[playerIndex]) {
+      otherPlayers[playerIndex].lives = 1;
+      otherPlayers[playerIndex].invincible = true;
+    }
+    Sound.playClick();
+  }
+
+  if (socket && socket.readyState === WebSocket.OPEN) {
+    socket.send(JSON.stringify({
+      type: 'resurrect',
+      targetPlayerIndex: playerIndex
+    }));
+  }
+}
+
+function updateMultiplayerResurrections() {
+  if (!isMultiplayer || !isHost) return;
+
+  let allDead = true;
+  if (player && player.lives > 0) allDead = false;
+  Object.keys(otherPlayers).forEach(pIdx => {
+    const op = otherPlayers[pIdx];
+    if (op && op.active && op.lives > 0) allDead = false;
+  });
+
+  if (allDead) {
+    gameOver();
+    notifyGameStateChange('gameover');
+    return;
+  }
+
+  const checkPlayerResurrection = (pIdx, currentLives) => {
+    if (currentLives <= 0) {
+      if (!spawnedResurrectShards[pIdx] && !deadPlayerCountdown[pIdx] && deadPlayerCountdown[pIdx] !== 0) {
+        deadPlayerCountdown[pIdx] = 180;
+      }
+
+      if (deadPlayerCountdown[pIdx] > 0) {
+        deadPlayerCountdown[pIdx]--;
+        if (deadPlayerCountdown[pIdx] === 0) {
+          const itemId = 'resurrect_' + pIdx + '_' + nextItemId++;
+          const itemColor = PLAYER_COLORS[pIdx] || '#ffffff';
+          const itemType = 'resurrect_p' + pIdx;
+
+          const newItem = new Item(BASE_WIDTH / 2, -40, itemType, itemColor);
+          newItem.id = itemId;
+          items.push(newItem);
+
+          if (socket && socket.readyState === WebSocket.OPEN) {
+            socket.send(JSON.stringify({
+              type: 'spawnItem',
+              itemId: itemId,
+              itemType: itemType,
+              color: itemColor,
+              x: BASE_WIDTH / 2,
+              y: -40
+            }));
+          }
+
+          spawnedResurrectShards[pIdx] = true;
+          delete deadPlayerCountdown[pIdx];
+        }
+      }
+    } else {
+      delete deadPlayerCountdown[pIdx];
+      delete spawnedResurrectShards[pIdx];
+    }
+  };
+
+  if (player) {
+    checkPlayerResurrection(1, player.lives);
+  }
+
+  Object.keys(otherPlayers).forEach(pIdxStr => {
+    const pIdx = parseInt(pIdxStr);
+    const op = otherPlayers[pIdx];
+    if (op && op.active) {
+      checkPlayerResurrection(pIdx, op.lives);
+    }
+  });
+}
+
+window.resurrectPlayer = resurrectPlayer;
+window.updateMultiplayerResurrections = updateMultiplayerResurrections;
