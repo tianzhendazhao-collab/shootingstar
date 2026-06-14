@@ -729,6 +729,10 @@ function proceedToNextStage() {
   if (typeof deadPlayerCountdown !== 'undefined') deadPlayerCountdown = {};
   if (typeof spawnedResurrectShards !== 'undefined') spawnedResurrectShards = {};
 
+  // Reset score and graze count on stage transition
+  score = 0;
+  grazeCount = 0;
+
   // Move to next stage (Stage 1-1 -> 1-2 -> ... -> 2-5 -> 3-1 -> 3-2...)
   const parts = currentStage.split('-');
   const world = parseInt(parts[0]);
@@ -985,6 +989,9 @@ window.stageClear = stageClear;
 window.proceedToNextStage = proceedToNextStage;
 window.pauseGame = pauseGame;
 window.resumeGame = resumeGame;
+window.selectLobbyWorld = selectLobbyWorld;
+window.selectLobbyStoryStage = selectLobbyStoryStage;
+window.renderLobbyStageSelect = renderLobbyStageSelect;
 
 // Initial selection setup on load
 initStars();
@@ -1005,3 +1012,95 @@ if (bgmBtn) {
 }
 Sound.sfxEnabled = sfxActive;
 Sound.bgmEnabled = bgmActive;
+
+let lobbyWorld = 1;
+
+function selectLobbyWorld(worldNum) {
+  if (!isMultiplayer || !isHost) return;
+  lobbyWorld = worldNum;
+  Sound.playClick();
+
+  const unlockedMax = parseInt(localStorage.getItem('danmaku_story_unlocked') || 1);
+  const firstStageIdx = (worldNum - 1) * 5 + 1;
+  if (firstStageIdx <= unlockedMax) {
+    lobbySelectedStage = `${worldNum}-1`;
+  }
+
+  if (socket && socket.readyState === WebSocket.OPEN) {
+    socket.send(JSON.stringify({
+      type: 'lobbyConfigSync',
+      gameMode: lobbyGameMode,
+      selectedStage: lobbySelectedStage
+    }));
+  }
+
+  renderLobbyStageSelect();
+}
+
+function selectLobbyStoryStage(stageName) {
+  if (!isMultiplayer || !isHost) return;
+
+  const parts = stageName.split('-');
+  const world = parseInt(parts[0]);
+  const stageNum = parseInt(parts[1]);
+  const stageIdx = (world - 1) * 5 + stageNum;
+
+  const unlockedMax = parseInt(localStorage.getItem('danmaku_story_unlocked') || 1);
+  if (stageIdx > unlockedMax) return;
+
+  lobbySelectedStage = stageName;
+  Sound.playHover();
+
+  if (socket && socket.readyState === WebSocket.OPEN) {
+    socket.send(JSON.stringify({
+      type: 'lobbyConfigSync',
+      gameMode: lobbyGameMode,
+      selectedStage: lobbySelectedStage
+    }));
+  }
+
+  renderLobbyStageSelect();
+}
+
+function renderLobbyStageSelect() {
+  const gridEl = document.getElementById('lobbyStageSelectGrid');
+  if (!gridEl) return;
+
+  gridEl.innerHTML = '';
+  const unlockedMax = parseInt(localStorage.getItem('danmaku_story_unlocked') || 1);
+
+  document.querySelectorAll('#lobbyStageSelectSettings .world-tab').forEach(tab => {
+    tab.classList.remove('active');
+  });
+  const activeTab = document.getElementById(`tabLobbyWorld${lobbyWorld}`);
+  if (activeTab) activeTab.classList.add('active');
+
+  const titleEl = document.getElementById('lobbyWorldSelectTitle');
+  if (titleEl) {
+    titleEl.textContent = `STAGE SELECT: ${lobbyWorld === 1 ? 'earth' : lobbyWorld === 2 ? 'moon' : 'sun'}`;
+  }
+
+  for (let i = 1; i <= 5; i++) {
+    const stageName = `${lobbyWorld}-${i}`;
+    const stageIdx = (lobbyWorld - 1) * 5 + i;
+    const isLocked = stageIdx > unlockedMax;
+    const isSelected = lobbySelectedStage === stageName;
+
+    const card = document.createElement('div');
+    card.className = `stage-card${isSelected ? ' selected' : ''}${isLocked ? ' locked' : ''}`;
+
+    let lockSymbol = isLocked ? ' 🔒' : '';
+
+    card.innerHTML = `
+      <h3>Stage ${stageName}${lockSymbol}</h3>
+    `;
+
+    if (isHost && !isLocked) {
+      card.addEventListener('click', () => {
+        selectLobbyStoryStage(stageName);
+      });
+    }
+
+    gridEl.appendChild(card);
+  }
+}

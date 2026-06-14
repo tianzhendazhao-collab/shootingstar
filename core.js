@@ -44,6 +44,7 @@ let myPlayerIndex = 1;
 let otherPlayers = {};
 let roomCode = '';
 let lobbyPlayers = [1];
+let lobbySelectedStage = '1-1';
 const PLAYER_COLORS = {
   1: '#00ffff', // Blue/Cyan
   2: '#ff0055', // Red

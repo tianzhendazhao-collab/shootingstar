@@ -84,6 +84,7 @@ function handleServerMessage(data) {
       lobbyPlayers = [1];
       isLobbyLocked = false;
       lobbyGameMode = 'story';
+      lobbySelectedStage = '1-1';
       updateMultiplayerStatus(`ルームコード: ${roomCode} (待機中)`);
       renderLobbyMembers(lobbyPlayers);
       showLobbyActiveUI(true);
@@ -97,6 +98,7 @@ function handleServerMessage(data) {
       lobbyPlayers = data.players;
       isLobbyLocked = data.locked || false;
       lobbyGameMode = data.gameMode || 'story';
+      lobbySelectedStage = data.selectedStage || '1-1';
       updateMultiplayerStatus(isLobbyLocked ? `ルームコード: ${roomCode} (ロック中)` : `ルームコード: ${roomCode} (待機中)`);
       renderLobbyMembers(lobbyPlayers);
       showLobbyActiveUI(false);
@@ -131,7 +133,11 @@ function handleServerMessage(data) {
 
     case 'lobbyConfigSync':
       lobbyGameMode = data.gameMode;
+      lobbySelectedStage = data.selectedStage || lobbySelectedStage;
       updateLobbyModeUI();
+      if (typeof renderLobbyStageSelect === 'function') {
+        renderLobbyStageSelect();
+      }
       break;
 
     case 'error':
@@ -143,7 +149,7 @@ function handleServerMessage(data) {
       break;
 
     case 'startGame':
-      startMultiplayerMatch(data.gameMode);
+      startMultiplayerMatch(data.gameMode, data.selectedStage);
       break;
 
     case 'sync': {
@@ -326,13 +332,14 @@ function startMultiplayerGame() {
   if (isMultiplayer && isHost && socket && socket.readyState === WebSocket.OPEN) {
     socket.send(JSON.stringify({
       type: 'startGame',
-      gameMode: lobbyGameMode
+      gameMode: lobbyGameMode,
+      selectedStage: lobbySelectedStage
     }));
-    startMultiplayerMatch(lobbyGameMode);
+    startMultiplayerMatch(lobbyGameMode, lobbySelectedStage);
   }
 }
 
-function startMultiplayerMatch(gameMode = 'story') {
+function startMultiplayerMatch(gameMode = 'story', selectedStage = '1-1') {
   Sound.playClick();
   Sound.init();
   if (bgmActive) {
@@ -374,7 +381,9 @@ function startMultiplayerMatch(gameMode = 'story') {
     currentPlayMode = 'story';
     scoreAttackType = null;
     currentGameMode = 'waves';
-    currentStage = '1-1';
+    currentStage = selectedStage || '1-1';
+    const parts = currentStage.split('-');
+    currentWorld = parseInt(parts[0]) || 1;
     currentWave = 1;
     currentDifficulty = 'hard'; // Hard metrics for boss count etc.
     player.bombs = 1; // 1 bomb limit
@@ -611,7 +620,8 @@ function setLobbyGameMode(mode) {
   if (socket && socket.readyState === WebSocket.OPEN) {
     socket.send(JSON.stringify({
       type: 'lobbyConfigSync',
-      gameMode: mode
+      gameMode: mode,
+      selectedStage: lobbySelectedStage
     }));
   }
 }
@@ -630,6 +640,21 @@ function updateLobbyModeUI() {
   const selectedCard = document.getElementById(cardId);
   if (selectedCard) selectedCard.classList.add('selected');
   
+  // Show / Hide Lobby Stage Select Settings based on mode and host status
+  const lobbyStageSelectSettings = document.getElementById('lobbyStageSelectSettings');
+  if (lobbyStageSelectSettings) {
+    if (lobbyGameMode === 'story' && isHost) {
+      lobbyStageSelectSettings.style.display = 'flex';
+      const parts = lobbySelectedStage.split('-');
+      lobbyWorld = parseInt(parts[0]) || 1;
+      if (typeof renderLobbyStageSelect === 'function') {
+        renderLobbyStageSelect();
+      }
+    } else {
+      lobbyStageSelectSettings.style.display = 'none';
+    }
+  }
+
   const guestModeText = document.getElementById('lobbyGuestModeText');
   if (guestModeText) {
     let modeLabel = 'STORY MODE';
@@ -639,6 +664,17 @@ function updateLobbyModeUI() {
       modeLabel = 'BOSS RUSH';
     }
     guestModeText.textContent = modeLabel;
+  }
+
+  const guestStageContainer = document.getElementById('lobbyGuestStageContainer');
+  const guestStageText = document.getElementById('lobbyGuestStageText');
+  if (guestStageContainer && guestStageText) {
+    if (lobbyGameMode === 'story') {
+      guestStageContainer.style.display = 'block';
+      guestStageText.textContent = lobbySelectedStage;
+    } else {
+      guestStageContainer.style.display = 'none';
+    }
   }
 }
 

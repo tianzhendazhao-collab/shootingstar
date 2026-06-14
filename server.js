@@ -47,7 +47,8 @@ wss.on('connection', (ws) => {
           code: code,
           clients: [ws],
           locked: false,
-          gameMode: 'story'
+          gameMode: 'story',
+          selectedStage: '1-1'
         };
         ws.roomId = code;
         ws.playerIndex = 1; // 1P (Host)
@@ -110,7 +111,8 @@ wss.on('connection', (ws) => {
           playerIndex: assignedIndex,
           players: room.clients.map(c => c.playerIndex),
           locked: room.locked,
-          gameMode: room.gameMode
+          gameMode: room.gameMode,
+          selectedStage: room.selectedStage
         }));
 
         // Notify other clients in the room
@@ -162,16 +164,18 @@ wss.on('connection', (ws) => {
           const room = rooms[ws.roomId];
           if (ws.playerIndex === 1) { // Host only (Player 1)
             room.gameMode = data.gameMode;
+            room.selectedStage = data.selectedStage || room.selectedStage;
             const msg = JSON.stringify({
               type: 'lobbyConfigSync',
-              gameMode: room.gameMode
+              gameMode: room.gameMode,
+              selectedStage: room.selectedStage
             });
             room.clients.forEach(client => {
               if (client !== ws && client.readyState === WebSocket.OPEN) {
                 client.send(msg);
               }
             });
-            console.log(`Room ${ws.roomId} gameMode synced to: ${room.gameMode}`);
+            console.log(`Room ${ws.roomId} gameMode synced to: ${room.gameMode}, stage: ${room.selectedStage}`);
           }
         }
         break;
