@@ -207,7 +207,7 @@ function gameOver() {
         retryBtn.disabled = false;
       }
       if (menuBtn) {
-        menuBtn.textContent = 'RETURN TO MENU';
+        menuBtn.textContent = 'RETURN TO LOBBY';
       }
     } else {
       if (retryBtn) {
@@ -264,7 +264,7 @@ function victory() {
         retryBtn.disabled = false;
       }
       if (menuBtn) {
-        menuBtn.textContent = 'RETURN TO MENU';
+        menuBtn.textContent = 'RETURN TO LOBBY';
       }
     } else {
       if (retryBtn) {
@@ -314,7 +314,88 @@ function toggleBGM() {
   Sound.playClick();
 }
 
+function returnToLobby() {
+  Sound.playClick();
+  Sound.stopBGM();
+
+  // Reset gameplay entities
+  player = null;
+  boss = null;
+  playerBullets = [];
+  enemyBullets = [];
+  enemies = [];
+  particles = [];
+  items = [];
+  playerDrones = [];
+
+  gameState = STATES.MENU;
+
+  // Show menu overlay and transition to multiplayer lobby tab
+  document.getElementById('menuOverlay').classList.remove('hidden');
+  document.getElementById('gameOverOverlay').classList.add('hidden');
+  document.getElementById('victoryOverlay').classList.add('hidden');
+  document.getElementById('stageClearOverlay').classList.add('hidden');
+  const pauseOverlay = document.getElementById('pauseOverlay');
+  if (pauseOverlay) pauseOverlay.classList.add('hidden');
+
+  // Activate multiplayer tab
+  currentPlayMode = 'multiplayer';
+  document.querySelectorAll('.playmode-card').forEach(card => {
+    card.classList.remove('selected');
+  });
+  const card = document.querySelector('.playmode-card.multiplayer');
+  if (card) card.classList.add('selected');
+
+  // Hide other settings panels
+  document.getElementById('storySettings').classList.add('hidden');
+  
+  const shopPanel = document.getElementById('shopSettings');
+  if (shopPanel) {
+    shopPanel.classList.add('hidden');
+    shopPanel.style.opacity = '0';
+    shopPanel.style.pointerEvents = 'none';
+  }
+
+  const scoreAttackPanel = document.getElementById('scoreAttackSettings');
+  if (scoreAttackPanel) {
+    scoreAttackPanel.classList.add('hidden');
+    scoreAttackPanel.style.opacity = '0';
+    scoreAttackPanel.style.pointerEvents = 'none';
+  }
+
+  const multiplayerPanel = document.getElementById('multiplayerSettings');
+  if (multiplayerPanel) {
+    multiplayerPanel.classList.remove('hidden');
+    multiplayerPanel.style.opacity = '1';
+    multiplayerPanel.style.pointerEvents = 'auto';
+  }
+
+  const startButton = document.getElementById('startButton');
+  if (startButton) startButton.style.display = 'none';
+
+  // Show active lobby UI based on whether they are host or guest
+  if (typeof showLobbyActiveUI === 'function') {
+    showLobbyActiveUI(isHost);
+  }
+  if (typeof renderLobbyMembers === 'function') {
+    renderLobbyMembers(lobbyPlayers);
+  }
+
+  updateCanvasBounds();
+}
+
 function returnToMenu() {
+  if (isMultiplayer && isHost) {
+    // Host returns to lobby and notifies guests, instead of closing room
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify({
+        type: 'returnToLobby'
+      }));
+    }
+    returnToLobby();
+    return;
+  }
+
   Sound.playClick();
   Sound.stopBGM();
   
@@ -608,7 +689,7 @@ function stageClear() {
         nextBtn.disabled = false;
       }
       if (menuBtn) {
-        menuBtn.textContent = 'RETURN TO MENU';
+        menuBtn.textContent = 'RETURN TO LOBBY';
       }
     } else {
       if (nextBtn) {
@@ -824,9 +905,21 @@ function pauseGame() {
   if (isMultiplayer) {
     const warningEl = document.getElementById('pauseMultiplayerWarning');
     if (warningEl) warningEl.style.display = 'block';
+    
+    // Set pause menu button text based on host or guest
+    const menuPauseBtn = document.getElementById('menuPauseButton');
+    if (menuPauseBtn) {
+      menuPauseBtn.textContent = isHost ? 'RETURN TO LOBBY' : 'LEAVE ROOM';
+    }
   } else {
     const warningEl = document.getElementById('pauseMultiplayerWarning');
     if (warningEl) warningEl.style.display = 'none';
+    
+    const menuPauseBtn = document.getElementById('menuPauseButton');
+    if (menuPauseBtn) {
+      menuPauseBtn.textContent = 'RETURN TO MENU';
+    }
+    
     prePauseState = gameState;
     gameState = STATES.PAUSED;
   }
@@ -877,6 +970,7 @@ window.selectStoryStage = selectStoryStage;
 window.selectWorld = selectWorld;
 window.selectScoreAttackType = selectScoreAttackType;
 window.returnToMenu = returnToMenu;
+window.returnToLobby = returnToLobby;
 window.buyShip = buyShip;
 window.selectShip = selectShip;
 window.renderShopGrid = renderShopGrid;

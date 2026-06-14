@@ -14,22 +14,69 @@ class Item {
 
   update() {
     if (this.type.startsWith('resurrect_')) {
-      // Special flight/float behavior for resurrection shards
-      if (!this.targetY) {
-        this.targetY = 200 + Math.random() * 300; // Hover in play area
-        this.floatTimer = 0;
-        this.vy = 3.0; // Fly down speed
+      // Ensure initial random velocity is set if not already present or zero
+      if (this.vx === undefined || this.vy === undefined || (this.vx === 0 && this.vy === 0)) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 1.8;
+        this.vx = Math.cos(angle) * speed;
+        this.vy = Math.sin(angle) * speed;
       }
-      
-      this.floatTimer++;
-      
-      if (this.y < this.targetY) {
-        this.y += this.vy;
-      } else {
-        // Pulse float in place
-        this.y = this.targetY + Math.sin(this.floatTimer * 0.05) * 15;
-        this.x += Math.sin(this.floatTimer * 0.02) * 0.5;
+
+      // Magnet effect pulling towards player if close
+      let magnetActive = false;
+      if (player) {
+        const dx = player.x - this.x;
+        const dy = player.y - this.y;
+        const distSq = dx * dx + dy * dy;
+        if (distSq < 16900) { // 130 * 130
+          magnetActive = true;
+          const dist = Math.sqrt(distSq); // Only calculate Math.sqrt if close enough
+          // Accelerate towards player (stronger pull for resurrect shard to help collect)
+          this.vx += (dx / dist) * 0.6;
+          this.vy += (dy / dist) * 0.6;
+          // Cap speed
+          const speedSq = this.vx * this.vx + this.vy * this.vy;
+          if (speedSq > 49) { // 7.0 * 7.0 = 49
+            const speed = Math.sqrt(speedSq);
+            this.vx = (this.vx / speed) * 7.0;
+            this.vy = (this.vy / speed) * 7.0;
+          }
+        }
       }
+
+      if (!magnetActive) {
+        // Periodically nudge direction randomly to keep it moving unpredictably
+        if (!this.nudgeTimer) this.nudgeTimer = 0;
+        this.nudgeTimer++;
+        if (this.nudgeTimer > 90) { // Every 1.5 seconds
+          this.nudgeTimer = 0;
+          const angle = Math.random() * Math.PI * 2;
+          const speed = 1.5 + Math.random() * 1.0;
+          this.vx = Math.cos(angle) * speed;
+          this.vy = Math.sin(angle) * speed;
+        }
+
+        // Apply bounce on screen boundaries
+        const offset = 20; // Allow it to float slightly off edges before bouncing
+        if (this.x < offset && this.vx < 0) {
+          this.vx = -this.vx;
+        } else if (this.x > BASE_WIDTH - offset && this.vx > 0) {
+          this.vx = -this.vx;
+        }
+        if (this.y < offset && this.vy < 0) {
+          this.vy = -this.vy;
+        } else if (this.y > BASE_HEIGHT - offset && this.vy > 0) {
+          this.vy = -this.vy;
+        }
+      }
+
+      this.x += this.vx;
+      this.y += this.vy;
+
+      // Clamp position inside viewport so it doesn't get lost
+      this.x = Math.max(5, Math.min(BASE_WIDTH - 5, this.x));
+      this.y = Math.max(5, Math.min(BASE_HEIGHT - 5, this.y));
+
       return; // Skip normal item physics
     }
 

@@ -38,6 +38,13 @@ class Enemy {
       fireRateMult *= (fireScaleMap[stageNum] || 1.0);
     }
 
+    // Apply multiplayer health scaling
+    if (isMultiplayer) {
+      const playerCount = (typeof lobbyPlayers !== 'undefined') ? lobbyPlayers.length : 1;
+      const coopHpScale = 1.0 + (playerCount - 1) * 0.8; // +80% HP per additional player
+      hpMult *= coopHpScale;
+    }
+
     // Base type settings
     switch (type) {
       case 'sniper': // purple
@@ -1052,7 +1059,12 @@ class Boss {
     }
 
     // Base Hp is 500 for all phases (no increase per phase or endless loops)
-    this.maxHp = 500;
+    let bossHp = 500;
+    if (isMultiplayer) {
+      const playerCount = (typeof lobbyPlayers !== 'undefined') ? lobbyPlayers.length : 1;
+      bossHp = Math.round(500 * (1.0 + (playerCount - 1) * 0.8)); // +80% HP per additional player
+    }
+    this.maxHp = bossHp;
     this.hp = this.maxHp;
 
     // Movement speeds
@@ -1108,8 +1120,13 @@ class Boss {
         this.color = colors[this.currentPhase] || '#ff007f';
       }
 
-      // Refill Hp for next phase (all phases have the same 500 HP)
-      this.maxHp = 500;
+      // Refill Hp for next phase (all phases have the same 500 HP, scaled in multiplayer)
+      let bossHp = 500;
+      if (isMultiplayer) {
+        const playerCount = (typeof lobbyPlayers !== 'undefined') ? lobbyPlayers.length : 1;
+        bossHp = Math.round(500 * (1.0 + (playerCount - 1) * 0.8)); // +80% HP per additional player
+      }
+      this.maxHp = bossHp;
       this.hp = this.maxHp;
       this.timer = 0;
 

@@ -199,7 +199,7 @@ function handleServerMessage(data) {
       break;
 
     case 'spawnItem':
-      spawnItemOnClient(data.itemId, data.itemType, data.color, data.x, data.y);
+      spawnItemOnClient(data.itemId, data.itemType, data.color, data.x, data.y, data.vx, data.vy);
       break;
 
     case 'itemCollect':
@@ -228,6 +228,10 @@ function handleServerMessage(data) {
 
     case 'nextStage':
       proceedToNextStage();
+      break;
+
+    case 'returnToLobby':
+      returnToLobby();
       break;
 
     case 'resurrect': {
@@ -460,9 +464,11 @@ function applyDamageToEnemy(enemyId, damage) {
   }
 }
 
-function spawnItemOnClient(itemId, itemType, color, x, y) {
+function spawnItemOnClient(itemId, itemType, color, x, y, vx, vy) {
   const item = new Item(x, y, itemType, color);
   item.id = itemId;
+  if (vx !== undefined) item.vx = vx;
+  if (vy !== undefined) item.vy = vy;
   items.push(item);
 }
 
@@ -695,8 +701,39 @@ function updateMultiplayerResurrections() {
           const itemColor = PLAYER_COLORS[pIdx] || '#ffffff';
           const itemType = 'resurrect_p' + pIdx;
 
-          const newItem = new Item(BASE_WIDTH / 2, -40, itemType, itemColor);
+          // Pick a random side for spawning: 0: top, 1: bottom, 2: left, 3: right
+          const side = Math.floor(Math.random() * 4);
+          let spawnX = BASE_WIDTH / 2;
+          let spawnY = -40;
+          const offset = 40;
+          if (side === 0) { // Top
+            spawnX = Math.random() * BASE_WIDTH;
+            spawnY = -offset;
+          } else if (side === 1) { // Bottom
+            spawnX = Math.random() * BASE_WIDTH;
+            spawnY = BASE_HEIGHT + offset;
+          } else if (side === 2) { // Left
+            spawnX = -offset;
+            spawnY = Math.random() * BASE_HEIGHT;
+          } else { // Right
+            spawnX = BASE_WIDTH + offset;
+            spawnY = Math.random() * BASE_HEIGHT;
+          }
+
+          // Generate a random speed direction heading into the canvas area
+          let targetX = BASE_WIDTH / 2;
+          let targetY = BASE_HEIGHT / 2;
+          let dx = targetX - spawnX;
+          let dy = targetY - spawnY;
+          let angle = Math.atan2(dy, dx) + (Math.random() * 1.0 - 0.5); // Add variance
+          let speed = 1.5 + Math.random() * 1.0;
+          let vx = Math.cos(angle) * speed;
+          let vy = Math.sin(angle) * speed;
+
+          const newItem = new Item(spawnX, spawnY, itemType, itemColor);
           newItem.id = itemId;
+          newItem.vx = vx;
+          newItem.vy = vy;
           items.push(newItem);
 
           if (socket && socket.readyState === WebSocket.OPEN) {
@@ -705,8 +742,10 @@ function updateMultiplayerResurrections() {
               itemId: itemId,
               itemType: itemType,
               color: itemColor,
-              x: BASE_WIDTH / 2,
-              y: -40
+              x: spawnX,
+              y: spawnY,
+              vx: vx,
+              vy: vy
             }));
           }
 
