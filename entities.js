@@ -382,44 +382,87 @@ function checkCollisions() {
   // 4. Player vs Items
   if (player && player.lives > 0) {
     items.forEach(item => {
-    const dx = player.x - item.x;
-    const dy = player.y - item.y;
-    const distSq = dx * dx + dy * dy;
-    const grabDist = player.width/2 + item.radius;
-    
-    if (distSq < grabDist * grabDist) {
-      item.dead = true;
-      Sound.playClick();
+      const dx = player.x - item.x;
+      const dy = player.y - item.y;
+      const distSq = dx * dx + dy * dy;
+      const grabDist = player.width/2 + item.radius;
       
-      if (item.type === 'power') {
-        player.powerLevel = Math.min(3, player.powerLevel + 1);
-        particles.push(new ScoreText(player.x, player.y - 20, `POWER UP! LV${player.powerLevel}`, '#ffb700', 1.25));
-        score += 500;
-      } else if (item.type === 'heal') {
-        player.lives = Math.min(5, player.lives + 1);
-        particles.push(new ScoreText(player.x, player.y - 20, "LIVES +1", '#39ff14', 1.25));
-        score += 500;
-      } else if (item.type === 'shield') {
-        player.shieldTimer = Math.max(player.shieldTimer, 300); // 5 seconds (300 frames)
-        particles.push(new ScoreText(player.x, player.y - 20, "SHIELD ACTIVE!", '#00ffff', 1.25));
-        score += 500;
-      } else if (item.type.startsWith('resurrect_')) {
-        const pIdxStr = item.type.split('_')[1]; // 'p1', 'p2' etc.
-        const targetPIdx = parseInt(pIdxStr.replace('p', ''));
-        if (typeof resurrectPlayer === 'function') {
-          resurrectPlayer(targetPIdx);
+      if (distSq < grabDist * grabDist) {
+        item.dead = true;
+        Sound.playClick();
+        
+        if (item.type === 'power') {
+          if (player.powerLevel >= 3) {
+            score += 1500; // Power max bonus score
+            particles.push(new ScoreText(player.x, player.y - 20, "POWER MAX! +1,500pts", '#ffb700', 1.25));
+          } else {
+            player.powerLevel = Math.min(3, player.powerLevel + 1);
+            particles.push(new ScoreText(player.x, player.y - 20, `POWER UP! LV${player.powerLevel}`, '#ffb700', 1.25));
+          }
+          score += 500;
+        } else if (item.type === 'heal') {
+          if (player.lives >= 5) {
+            score += 2500; // Lives max bonus score
+            particles.push(new ScoreText(player.x, player.y - 20, "LIVES MAX! +2,500pts", '#39ff14', 1.25));
+          } else {
+            player.lives = Math.min(5, player.lives + 1);
+            particles.push(new ScoreText(player.x, player.y - 20, "LIVES +1", '#39ff14', 1.25));
+          }
+          score += 500;
+        } else if (item.type === 'shield') {
+          player.shieldTimer = Math.max(player.shieldTimer, 300); // 5 seconds (300 frames)
+          particles.push(new ScoreText(player.x, player.y - 20, "SHIELD ACTIVE!", '#00ffff', 1.25));
+          score += 500;
+        } else if (item.type.startsWith('resurrect_')) {
+          const pIdxStr = item.type.split('_')[1]; // 'p1', 'p2' etc.
+          const targetPIdx = parseInt(pIdxStr.replace('p', ''));
+          if (typeof resurrectPlayer === 'function') {
+            resurrectPlayer(targetPIdx);
+          }
         }
-      }
 
-      if (isMultiplayer && socket && socket.readyState === WebSocket.OPEN) {
-        socket.send(JSON.stringify({
-          type: 'itemCollect',
-          itemId: item.id
-        }));
-      }
+        if (isMultiplayer && socket && socket.readyState === WebSocket.OPEN) {
+          socket.send(JSON.stringify({
+            type: 'itemCollect',
+            itemId: item.id
+          }));
+        }
 
-      updateHUD();
-     }
+        updateHUD();
+      }
     });
   }
+
+  // 5. Player Drones vs Enemies / Boss (Crash explosion)
+  playerDrones.forEach(d => {
+    // Only local player checks collisions for their own drones in multiplayer
+    const isRemote = d.ownerIndex !== myPlayerIndex;
+    if (isRemote) return;
+
+    enemies.forEach(e => {
+      if (d.dead || e.dead) return;
+      
+      const dx = e.x - d.x;
+      const dy = e.y - d.y;
+      const distSq = dx * dx + dy * dy;
+      const crashDist = d.width/2 + e.width/2;
+      
+      if (distSq < crashDist * crashDist) {
+        d.dead = true;
+        d.explodeOnCrash(e);
+      }
+    });
+
+    if (boss && !boss.dead && gameState === STATES.BOSS_BATTLE && !d.dead) {
+      const dx = boss.x - d.x;
+      const dy = boss.y - d.y;
+      const distSq = dx * dx + dy * dy;
+      const crashDist = d.width/2 + boss.width/2;
+      
+      if (distSq < crashDist * crashDist) {
+        d.dead = true;
+        d.explodeOnCrash(boss);
+      }
+    }
+  });
 }

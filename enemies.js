@@ -26,7 +26,8 @@ class Enemy {
       const stageNum = parseInt(parts[1]) || 1;
 
       // Force hard base metrics, World 2 difficulty matches World 1!
-      hpMult = 2.2;
+      // Significantly lower World 1 HP multiplier (0.9 base instead of 2.2)
+      hpMult = world === 1 ? 0.9 : 2.2;
       fireRateMult = 1.6;
       
       // Explicit scaling factors (no more weak 0.7x starting multipliers!)
@@ -180,8 +181,8 @@ class Enemy {
         this.targetY = 80 + Math.random() * 80;
         this.vx = 0.8;
         this.vy = 1.2;
-        this.shieldHp = Math.round(15 * hpMult); // Shield value
-        this.maxShieldHp = this.shieldHp;
+        this.shieldHp = 0; // Shield value deleted
+        this.maxShieldHp = 0;
         break;
     }
     this.hp = this.maxHp;
@@ -219,9 +220,7 @@ class Enemy {
     // Spawn score popup indicator
     particles.push(new ScoreText(this.x, this.y, this.points));
 
-    // Award gold (10% of points)
-    const goldEarned = Math.round(this.points * 0.1);
-    addGold(goldEarned, this.x, this.y);
+    // Gold is now awarded at stage clear based on score conversion instead of drops!
 
     // Spawn item drop occasionally (Only on Host in multiplayer)
     if (!isMultiplayer || isHost) {
@@ -1122,8 +1121,7 @@ class Boss {
       ctx.fillStyle = 'rgba(255,255,255,0.4)';
       ctx.fillRect(0,0,BASE_WIDTH,BASE_HEIGHT);
       
-      // Award gold for phase clear: 200 G
-      addGold(200, this.x, this.y);
+      // Gold is now awarded at stage clear based on score conversion instead of drops!
     } else {
       this.dead = true;
       this.bossDefeated();
@@ -1152,8 +1150,7 @@ class Boss {
       }
     }
 
-    // Award gold for boss defeat: 1500 G
-    addGold(1500, this.x, this.y);
+    // Gold is now awarded at stage clear based on score conversion instead of drops!
     // Normal/Hard Victory or Story Mode Victory
     score += 10000;
     updateHUD();
@@ -1799,62 +1796,62 @@ const storyWaveSpawns = {
     5: [[30, 0.2, 'sniper'], [30, 0.8, 'sniper'], [60, 0.3, 'spreader'], [60, 0.7, 'spreader'], [90, 0.5, 'spreader'], [120, 0.2, 'sniper'], [120, 0.8, 'sniper']]
   },
   '1-2': {
-    1: [[30, 0.3, 'waver'], [30, 0.7, 'waver'], [60, 0.5, 'waver']],
-    2: [[30, 0.2, 'waver'], [30, 0.8, 'waver'], [60, 0.4, 'waver'], [60, 0.6, 'waver']],
-    3: [[30, 0.3, 'sniper'], [30, 0.7, 'sniper'], [60, 0.5, 'waver'], [90, 0.2, 'waver'], [90, 0.8, 'sniper']],
-    4: [[30, 0.3, 'spreader'], [30, 0.7, 'spreader'], [60, 0.5, 'waver'], [90, 0.3, 'spreader'], [90, 0.7, 'waver']],
-    5: [[30, 0.2, 'waver'], [30, 0.8, 'waver'], [60, 0.3, 'spreader'], [60, 0.7, 'spreader'], [90, 0.5, 'spreader'], [120, 0.2, 'waver'], [120, 0.8, 'waver']]
+    1: [[30, 0.3, 'prominence_shield'], [30, 0.7, 'prominence_shield'], [60, 0.5, 'prominence_shield']],
+    2: [[30, 0.2, 'prominence_shield'], [30, 0.8, 'prominence_shield'], [60, 0.4, 'prominence_shield'], [60, 0.6, 'prominence_shield']],
+    3: [[30, 0.3, 'sniper'], [30, 0.7, 'sniper'], [60, 0.5, 'prominence_shield'], [90, 0.2, 'prominence_shield'], [90, 0.8, 'sniper']],
+    4: [[30, 0.3, 'spreader'], [30, 0.7, 'spreader'], [60, 0.5, 'prominence_shield'], [90, 0.3, 'spreader'], [90, 0.7, 'prominence_shield']],
+    5: [[30, 0.2, 'prominence_shield'], [30, 0.8, 'prominence_shield'], [60, 0.3, 'spreader'], [60, 0.7, 'spreader'], [90, 0.5, 'spreader'], [120, 0.2, 'prominence_shield'], [120, 0.8, 'prominence_shield']]
   },
   '1-3': {
     1: [[30, 0.3, 'spiraler'], [30, 0.7, 'spiraler'], [60, 0.5, 'spiraler']],
     2: [[30, 0.2, 'spiraler'], [30, 0.8, 'spiraler'], [60, 0.4, 'spiraler'], [60, 0.6, 'spiraler']],
-    3: [[30, 0.3, 'waver'], [30, 0.7, 'waver'], [60, 0.5, 'spiraler'], [90, 0.2, 'spiraler'], [90, 0.8, 'waver']],
+    3: [[30, 0.3, 'prominence_shield'], [30, 0.7, 'prominence_shield'], [60, 0.5, 'spiraler'], [90, 0.2, 'spiraler'], [90, 0.8, 'prominence_shield']],
     4: [[30, 0.3, 'spreader'], [30, 0.7, 'spreader'], [60, 0.5, 'spiraler'], [90, 0.3, 'spreader'], [90, 0.7, 'spiraler']],
-    5: [[30, 0.2, 'spiraler'], [30, 0.8, 'spiraler'], [60, 0.3, 'waver'], [60, 0.7, 'waver'], [90, 0.5, 'spreader'], [120, 0.25, 'spiraler'], [120, 0.75, 'spiraler'], [140, 0.5, 'waver']]
+    5: [[30, 0.2, 'spiraler'], [30, 0.8, 'spiraler'], [60, 0.3, 'prominence_shield'], [60, 0.7, 'prominence_shield'], [90, 0.5, 'spreader'], [120, 0.25, 'spiraler'], [120, 0.75, 'spiraler'], [140, 0.5, 'prominence_shield']]
   },
   '1-4': {
     1: [[30, 0.3, 'burster'], [30, 0.7, 'burster'], [60, 0.5, 'burster']],
     2: [[30, 0.2, 'burster'], [30, 0.8, 'burster'], [60, 0.4, 'burster'], [60, 0.6, 'burster']],
     3: [[30, 0.3, 'spiraler'], [30, 0.7, 'spiraler'], [60, 0.5, 'burster'], [90, 0.2, 'burster'], [90, 0.8, 'spiraler']],
-    4: [[30, 0.2, 'waver'], [30, 0.8, 'waver'], [60, 0.3, 'burster'], [60, 0.7, 'burster'], [90, 0.5, 'waver'], [120, 0.5, 'burster']],
+    4: [[30, 0.2, 'prominence_shield'], [30, 0.8, 'prominence_shield'], [60, 0.3, 'burster'], [60, 0.7, 'burster'], [90, 0.5, 'prominence_shield'], [120, 0.5, 'burster']],
     5: [[30, 0.2, 'burster'], [30, 0.8, 'burster'], [60, 0.3, 'spiraler'], [60, 0.7, 'spiraler'], [90, 0.5, 'spreader'], [120, 0.2, 'burster'], [120, 0.8, 'burster'], [140, 0.3, 'spiraler'], [140, 0.7, 'spreader']]
   },
   '1-5': { // Heavy hybrid wave series before the boss
     1: [[30, 0.2, 'spiraler'], [30, 0.8, 'spiraler'], [60, 0.35, 'burster'], [60, 0.65, 'burster'], [90, 0.5, 'spiraler']],
-    2: [[30, 0.2, 'burster'], [30, 0.8, 'burster'], [60, 0.3, 'waver'], [60, 0.7, 'waver'], [90, 0.5, 'spreader'], [120, 0.2, 'burster'], [120, 0.8, 'burster'], [140, 0.5, 'waver']],
+    2: [[30, 0.2, 'burster'], [30, 0.8, 'burster'], [60, 0.3, 'prominence_shield'], [60, 0.7, 'prominence_shield'], [90, 0.5, 'spreader'], [120, 0.2, 'burster'], [120, 0.8, 'burster'], [140, 0.5, 'prominence_shield']],
     3: []
   },
   '2-1': {
     1: [[30, 0.5, 'splitter'], [45, 0.3, 'sniper'], [45, 0.7, 'sniper'], [65, 0.2, 'suicider'], [65, 0.8, 'suicider'], [90, 0.4, 'splitter'], [90, 0.6, 'splitter']],
-    2: [[30, 0.3, 'sniper'], [30, 0.7, 'sniper'], [55, 0.25, 'waver'], [55, 0.75, 'waver'], [80, 0.5, 'suicider'], [105, 0.3, 'splitter'], [105, 0.7, 'splitter']],
-    3: [[30, 0.2, 'waver'], [30, 0.8, 'waver'], [60, 0.5, 'spreader'], [85, 0.3, 'sniper'], [85, 0.7, 'sniper'], [110, 0.2, 'suicider'], [110, 0.8, 'suicider'], [130, 0.5, 'splitter']],
-    4: [[30, 0.3, 'spreader'], [30, 0.7, 'spreader'], [60, 0.25, 'spiraler'], [60, 0.75, 'spiraler'], [90, 0.5, 'waver'], [115, 0.3, 'splitter'], [115, 0.7, 'splitter']],
-    5: [[30, 0.2, 'suicider'], [30, 0.8, 'suicider'], [55, 0.3, 'burster'], [55, 0.7, 'burster'], [80, 0.5, 'spiraler'], [110, 0.2, 'splitter'], [110, 0.8, 'splitter'], [130, 0.5, 'waver']]
+    2: [[30, 0.3, 'sniper'], [30, 0.7, 'sniper'], [55, 0.25, 'prominence_shield'], [55, 0.75, 'prominence_shield'], [80, 0.5, 'suicider'], [105, 0.3, 'splitter'], [105, 0.7, 'splitter']],
+    3: [[30, 0.2, 'prominence_shield'], [30, 0.8, 'prominence_shield'], [60, 0.5, 'spreader'], [85, 0.3, 'sniper'], [85, 0.7, 'sniper'], [110, 0.2, 'suicider'], [110, 0.8, 'suicider'], [130, 0.5, 'splitter']],
+    4: [[30, 0.3, 'spreader'], [30, 0.7, 'spreader'], [60, 0.25, 'spiraler'], [60, 0.75, 'spiraler'], [90, 0.5, 'prominence_shield'], [115, 0.3, 'splitter'], [115, 0.7, 'splitter']],
+    5: [[30, 0.2, 'suicider'], [30, 0.8, 'suicider'], [55, 0.3, 'burster'], [55, 0.7, 'burster'], [80, 0.5, 'spiraler'], [110, 0.2, 'splitter'], [110, 0.8, 'splitter'], [130, 0.5, 'prominence_shield']]
   },
   '2-2': {
-    1: [[30, 0.3, 'waver'], [30, 0.7, 'waver'], [55, 0.5, 'spiraler'], [80, 0.2, 'splitter'], [80, 0.8, 'splitter'], [105, 0.4, 'sniper'], [105, 0.6, 'sniper']],
-    2: [[30, 0.2, 'splitter'], [30, 0.8, 'splitter'], [55, 0.5, 'spreader'], [80, 0.3, 'waver'], [80, 0.7, 'waver'], [105, 0.2, 'suicider'], [105, 0.8, 'suicider']],
-    3: [[30, 0.2, 'spiraler'], [30, 0.8, 'spiraler'], [60, 0.4, 'suicider'], [60, 0.6, 'suicider'], [90, 0.3, 'splitter'], [90, 0.7, 'splitter'], [120, 0.5, 'waver']],
+    1: [[30, 0.3, 'prominence_shield'], [30, 0.7, 'prominence_shield'], [55, 0.5, 'spiraler'], [80, 0.2, 'splitter'], [80, 0.8, 'splitter'], [105, 0.4, 'sniper'], [105, 0.6, 'sniper']],
+    2: [[30, 0.2, 'splitter'], [30, 0.8, 'splitter'], [55, 0.5, 'spreader'], [80, 0.3, 'prominence_shield'], [80, 0.7, 'prominence_shield'], [105, 0.2, 'suicider'], [105, 0.8, 'suicider']],
+    3: [[30, 0.2, 'spiraler'], [30, 0.8, 'spiraler'], [60, 0.4, 'suicider'], [60, 0.6, 'suicider'], [90, 0.3, 'splitter'], [90, 0.7, 'splitter'], [120, 0.5, 'prominence_shield']],
     4: [[30, 0.3, 'burster'], [30, 0.7, 'burster'], [55, 0.2, 'spreader'], [55, 0.8, 'spreader'], [85, 0.5, 'suicider'], [110, 0.3, 'splitter'], [110, 0.7, 'spiraler']],
-    5: [[30, 0.2, 'spreader'], [30, 0.8, 'spreader'], [55, 0.3, 'suicider'], [55, 0.7, 'suicider'], [80, 0.5, 'burster'], [105, 0.25, 'splitter'], [105, 0.75, 'splitter'], [130, 0.4, 'waver'], [130, 0.6, 'waver']]
+    5: [[30, 0.2, 'spreader'], [30, 0.8, 'spreader'], [55, 0.3, 'suicider'], [55, 0.7, 'suicider'], [80, 0.5, 'burster'], [105, 0.25, 'splitter'], [105, 0.75, 'splitter'], [130, 0.4, 'prominence_shield'], [130, 0.6, 'prominence_shield']]
   },
   '2-3': {
     1: [[30, 0.3, 'spiraler'], [30, 0.7, 'spiraler'], [55, 0.2, 'suicider'], [55, 0.8, 'suicider'], [80, 0.4, 'splitter'], [80, 0.6, 'splitter'], [105, 0.5, 'burster']],
-    2: [[30, 0.2, 'suicider'], [30, 0.8, 'suicider'], [55, 0.3, 'spiraler'], [55, 0.7, 'spiraler'], [80, 0.5, 'splitter'], [105, 0.2, 'waver'], [105, 0.8, 'waver']],
+    2: [[30, 0.2, 'suicider'], [30, 0.8, 'suicider'], [55, 0.3, 'spiraler'], [55, 0.7, 'spiraler'], [80, 0.5, 'splitter'], [105, 0.2, 'prominence_shield'], [105, 0.8, 'prominence_shield']],
     3: [[30, 0.25, 'suicider'], [30, 0.75, 'suicider'], [55, 0.5, 'spiraler'], [80, 0.3, 'splitter'], [80, 0.7, 'splitter'], [105, 0.2, 'burster'], [105, 0.8, 'burster'], [130, 0.5, 'spreader']],
-    4: [[30, 0.25, 'spreader'], [30, 0.75, 'spreader'], [55, 0.3, 'suicider'], [55, 0.7, 'suicider'], [80, 0.5, 'waver'], [105, 0.3, 'splitter'], [105, 0.7, 'splitter'], [125, 0.5, 'spiraler']],
-    5: [[30, 0.15, 'waver'], [30, 0.85, 'waver'], [55, 0.3, 'suicider'], [55, 0.7, 'suicider'], [80, 0.5, 'burster'], [105, 0.2, 'splitter'], [105, 0.8, 'splitter'], [125, 0.3, 'waver'], [125, 0.7, 'waver'], [145, 0.5, 'spreader']]
+    4: [[30, 0.25, 'spreader'], [30, 0.75, 'spreader'], [55, 0.3, 'suicider'], [55, 0.7, 'suicider'], [80, 0.5, 'prominence_shield'], [105, 0.3, 'splitter'], [105, 0.7, 'splitter'], [125, 0.5, 'spiraler']],
+    5: [[30, 0.15, 'prominence_shield'], [30, 0.85, 'prominence_shield'], [55, 0.3, 'suicider'], [55, 0.7, 'suicider'], [80, 0.5, 'burster'], [105, 0.2, 'splitter'], [105, 0.8, 'splitter'], [125, 0.3, 'prominence_shield'], [125, 0.7, 'prominence_shield'], [145, 0.5, 'spreader']]
   },
   '2-4': {
     1: [[30, 0.2, 'spreader'], [30, 0.8, 'spreader'], [55, 0.3, 'suicider'], [55, 0.7, 'suicider'], [80, 0.5, 'burster'], [105, 0.3, 'splitter'], [105, 0.7, 'splitter'], [130, 0.5, 'spiraler']],
-    2: [[30, 0.15, 'spiraler'], [30, 0.85, 'spiraler'], [55, 0.3, 'splitter'], [55, 0.7, 'splitter'], [80, 0.5, 'waver'], [105, 0.2, 'splitter'], [105, 0.8, 'splitter'], [130, 0.3, 'spreader'], [130, 0.7, 'spreader']],
+    2: [[30, 0.15, 'spiraler'], [30, 0.85, 'spiraler'], [55, 0.3, 'splitter'], [55, 0.7, 'splitter'], [80, 0.5, 'prominence_shield'], [105, 0.2, 'splitter'], [105, 0.8, 'splitter'], [130, 0.3, 'spreader'], [130, 0.7, 'spreader']],
     3: [[30, 0.2, 'suicider'], [30, 0.8, 'suicider'], [55, 0.3, 'splitter'], [55, 0.7, 'splitter'], [80, 0.5, 'spiraler'], [105, 0.25, 'splitter'], [105, 0.75, 'splitter'], [130, 0.3, 'burster'], [130, 0.7, 'burster']],
-    4: [[30, 0.2, 'burster'], [30, 0.8, 'burster'], [55, 0.35, 'suicider'], [55, 0.65, 'suicider'], [80, 0.5, 'waver'], [105, 0.2, 'splitter'], [105, 0.8, 'splitter'], [130, 0.3, 'spiraler'], [130, 0.7, 'spiraler']],
-    5: [[30, 0.15, 'sniper'], [30, 0.85, 'sniper'], [55, 0.3, 'suicider'], [55, 0.7, 'suicider'], [80, 0.5, 'burster'], [105, 0.2, 'splitter'], [105, 0.8, 'splitter'], [130, 0.3, 'waver'], [130, 0.7, 'waver'], [150, 0.5, 'spreader']]
+    4: [[30, 0.2, 'burster'], [30, 0.8, 'burster'], [55, 0.35, 'suicider'], [55, 0.65, 'suicider'], [80, 0.5, 'prominence_shield'], [105, 0.2, 'splitter'], [105, 0.8, 'splitter'], [130, 0.3, 'spiraler'], [130, 0.7, 'spiraler']],
+    5: [[30, 0.15, 'sniper'], [30, 0.85, 'sniper'], [55, 0.3, 'suicider'], [55, 0.7, 'suicider'], [80, 0.5, 'burster'], [105, 0.2, 'splitter'], [105, 0.8, 'splitter'], [130, 0.3, 'prominence_shield'], [130, 0.7, 'prominence_shield'], [150, 0.5, 'spreader']]
   },
   '2-5': {
-    1: [[30, 0.2, 'waver'], [30, 0.8, 'waver'], [55, 0.3, 'suicider'], [55, 0.7, 'suicider'], [80, 0.5, 'spiraler'], [105, 0.25, 'splitter'], [105, 0.75, 'splitter'], [130, 0.3, 'burster'], [130, 0.7, 'burster']],
-    2: [[30, 0.15, 'suicider'], [30, 0.85, 'suicider'], [55, 0.3, 'suicider'], [55, 0.7, 'suicider'], [80, 0.5, 'waver'], [105, 0.2, 'splitter'], [105, 0.8, 'splitter'], [130, 0.3, 'spiraler'], [130, 0.7, 'spreader'], [150, 0.2, 'burster'], [150, 0.8, 'burster']],
+    1: [[30, 0.2, 'prominence_shield'], [30, 0.8, 'prominence_shield'], [55, 0.3, 'suicider'], [55, 0.7, 'suicider'], [80, 0.5, 'spiraler'], [105, 0.25, 'splitter'], [105, 0.75, 'splitter'], [130, 0.3, 'burster'], [130, 0.7, 'burster']],
+    2: [[30, 0.15, 'suicider'], [30, 0.85, 'suicider'], [55, 0.3, 'suicider'], [55, 0.7, 'suicider'], [80, 0.5, 'prominence_shield'], [105, 0.2, 'splitter'], [105, 0.8, 'splitter'], [130, 0.3, 'spiraler'], [130, 0.7, 'spreader'], [150, 0.2, 'burster'], [150, 0.8, 'burster']],
     3: [] // Immediately transitions to Boss Battle, no spawns needed
   },
   '3-1': {
@@ -1865,29 +1862,29 @@ const storyWaveSpawns = {
     5: [[30, 0.2, 'solar_spark'], [30, 0.8, 'solar_spark'], [60, 0.3, 'corona_bomber'], [60, 0.7, 'corona_bomber'], [90, 0.5, 'corona_bomber'], [120, 0.2, 'solar_spark'], [120, 0.8, 'solar_spark']]
   },
   '3-2': {
-    1: [[30, 0.3, 'prominence_shield'], [30, 0.7, 'prominence_shield'], [60, 0.5, 'waver']],
-    2: [[30, 0.2, 'prominence_shield'], [30, 0.8, 'prominence_shield'], [60, 0.4, 'prominence_shield'], [60, 0.6, 'prominence_shield']],
-    3: [[30, 0.3, 'solar_spark'], [30, 0.7, 'solar_spark'], [60, 0.5, 'prominence_shield'], [90, 0.2, 'prominence_shield'], [90, 0.8, 'waver']],
-    4: [[30, 0.3, 'corona_bomber'], [30, 0.7, 'corona_bomber'], [60, 0.5, 'prominence_shield'], [90, 0.3, 'corona_bomber'], [90, 0.7, 'prominence_shield']],
-    5: [[30, 0.2, 'prominence_shield'], [30, 0.8, 'prominence_shield'], [60, 0.3, 'corona_bomber'], [60, 0.7, 'corona_bomber'], [90, 0.5, 'solar_spark'], [120, 0.2, 'prominence_shield'], [120, 0.8, 'prominence_shield']]
+    1: [[30, 0.3, 'waver'], [30, 0.7, 'waver'], [60, 0.5, 'prominence_shield']],
+    2: [[30, 0.2, 'waver'], [30, 0.8, 'waver'], [60, 0.4, 'waver'], [60, 0.6, 'waver']],
+    3: [[30, 0.3, 'solar_spark'], [30, 0.7, 'solar_spark'], [60, 0.5, 'waver'], [90, 0.2, 'waver'], [90, 0.8, 'prominence_shield']],
+    4: [[30, 0.3, 'corona_bomber'], [30, 0.7, 'corona_bomber'], [60, 0.5, 'waver'], [90, 0.3, 'corona_bomber'], [90, 0.7, 'waver']],
+    5: [[30, 0.2, 'waver'], [30, 0.8, 'waver'], [60, 0.3, 'corona_bomber'], [60, 0.7, 'corona_bomber'], [90, 0.5, 'solar_spark'], [120, 0.2, 'waver'], [120, 0.8, 'waver']]
   },
   '3-3': {
     1: [[30, 0.3, 'solar_spark'], [30, 0.7, 'solar_spark'], [60, 0.5, 'spiraler']],
-    2: [[30, 0.2, 'prominence_shield'], [30, 0.8, 'prominence_shield'], [60, 0.4, 'corona_bomber'], [60, 0.6, 'corona_bomber']],
-    3: [[30, 0.3, 'waver'], [30, 0.7, 'waver'], [60, 0.5, 'solar_spark'], [90, 0.2, 'solar_spark'], [90, 0.8, 'prominence_shield']],
-    4: [[30, 0.3, 'spreader'], [30, 0.7, 'spreader'], [60, 0.5, 'corona_bomber'], [90, 0.3, 'spreader'], [90, 0.7, 'prominence_shield']],
-    5: [[30, 0.2, 'solar_spark'], [30, 0.8, 'solar_spark'], [60, 0.3, 'prominence_shield'], [60, 0.7, 'prominence_shield'], [90, 0.5, 'corona_bomber'], [120, 0.25, 'solar_spark'], [120, 0.75, 'solar_spark'], [140, 0.5, 'waver']]
+    2: [[30, 0.2, 'waver'], [30, 0.8, 'waver'], [60, 0.4, 'corona_bomber'], [60, 0.6, 'corona_bomber']],
+    3: [[30, 0.3, 'prominence_shield'], [30, 0.7, 'prominence_shield'], [60, 0.5, 'solar_spark'], [90, 0.2, 'solar_spark'], [90, 0.8, 'waver']],
+    4: [[30, 0.3, 'spreader'], [30, 0.7, 'spreader'], [60, 0.5, 'corona_bomber'], [90, 0.3, 'spreader'], [90, 0.7, 'waver']],
+    5: [[30, 0.2, 'solar_spark'], [30, 0.8, 'solar_spark'], [60, 0.3, 'waver'], [60, 0.7, 'waver'], [90, 0.5, 'corona_bomber'], [120, 0.25, 'solar_spark'], [120, 0.75, 'solar_spark'], [140, 0.5, 'prominence_shield']]
   },
   '3-4': {
     1: [[30, 0.3, 'burster'], [30, 0.7, 'burster'], [60, 0.5, 'solar_spark']],
-    2: [[30, 0.2, 'corona_bomber'], [30, 0.8, 'corona_bomber'], [60, 0.4, 'prominence_shield'], [60, 0.6, 'prominence_shield']],
+    2: [[30, 0.2, 'corona_bomber'], [30, 0.8, 'corona_bomber'], [60, 0.4, 'waver'], [60, 0.6, 'waver']],
     3: [[30, 0.3, 'spiraler'], [30, 0.7, 'spiraler'], [60, 0.5, 'solar_spark'], [90, 0.2, 'solar_spark'], [90, 0.8, 'corona_bomber']],
-    4: [[30, 0.2, 'waver'], [30, 0.8, 'waver'], [60, 0.3, 'prominence_shield'], [60, 0.7, 'prominence_shield'], [90, 0.5, 'waver'], [120, 0.5, 'burster']],
-    5: [[30, 0.2, 'solar_spark'], [30, 0.8, 'solar_spark'], [60, 0.3, 'corona_bomber'], [60, 0.7, 'corona_bomber'], [90, 0.5, 'prominence_shield'], [120, 0.2, 'burster'], [120, 0.8, 'burster'], [140, 0.3, 'solar_spark'], [140, 0.7, 'prominence_shield']]
+    4: [[30, 0.2, 'prominence_shield'], [30, 0.8, 'prominence_shield'], [60, 0.3, 'waver'], [60, 0.7, 'waver'], [90, 0.5, 'prominence_shield'], [120, 0.5, 'burster']],
+    5: [[30, 0.2, 'solar_spark'], [30, 0.8, 'solar_spark'], [60, 0.3, 'corona_bomber'], [60, 0.7, 'corona_bomber'], [90, 0.5, 'prominence_shield'], [120, 0.2, 'burster'], [120, 0.8, 'burster'], [140, 0.3, 'solar_spark'], [140, 0.7, 'waver']]
   },
   '3-5': {
-    1: [[30, 0.2, 'prominence_shield'], [30, 0.8, 'prominence_shield'], [60, 0.35, 'solar_spark'], [60, 0.65, 'solar_spark'], [90, 0.5, 'corona_bomber']],
-    2: [[30, 0.2, 'burster'], [30, 0.8, 'burster'], [60, 0.3, 'prominence_shield'], [60, 0.7, 'prominence_shield'], [90, 0.5, 'corona_bomber'], [120, 0.2, 'solar_spark'], [120, 0.8, 'solar_spark'], [140, 0.5, 'corona_bomber']],
+    1: [[30, 0.2, 'waver'], [30, 0.8, 'waver'], [60, 0.35, 'solar_spark'], [60, 0.65, 'solar_spark'], [90, 0.5, 'corona_bomber']],
+    2: [[30, 0.2, 'burster'], [30, 0.8, 'burster'], [60, 0.3, 'waver'], [60, 0.7, 'waver'], [90, 0.5, 'corona_bomber'], [120, 0.2, 'solar_spark'], [120, 0.8, 'solar_spark'], [140, 0.5, 'corona_bomber']],
     3: [] // Immediately transitions to Boss Battle, no spawns needed
   }
 };
@@ -1927,16 +1924,16 @@ function spawnEnemyWave() {
       [180, 0.7, 'spreader']
     ],
     4: [
-      [30, 0.2, 'waver'],
+      [30, 0.2, 'prominence_shield'],
       [80, 0.5, 'splitter'],
-      [140, 0.3, 'waver'],
+      [140, 0.3, 'prominence_shield'],
       [200, 0.7, 'splitter']
     ],
     5: [
       [30, 0.3, 'burster'],
-      [80, 0.5, 'prominence_shield'],
+      [80, 0.5, 'waver'],
       [140, 0.7, 'burster'],
-      [200, 0.3, 'prominence_shield']
+      [200, 0.3, 'waver']
     ],
     6: [
       [30, 0.2, 'corona_bomber'],
@@ -1953,12 +1950,12 @@ function spawnEnemyWave() {
       [180, 0.85, 'solar_spark']
     ],
     8: [
-      [30, 0.5, 'prominence_shield'],
+      [30, 0.5, 'waver'],
       [80, 0.25, 'spreader'],
       [80, 0.75, 'spreader'],
-      [140, 0.5, 'waver'],
-      [200, 0.3, 'prominence_shield'],
-      [200, 0.7, 'waver']
+      [140, 0.5, 'prominence_shield'],
+      [200, 0.3, 'waver'],
+      [200, 0.7, 'prominence_shield']
     ],
     9: [
       [30, 0.2, 'burster'],
@@ -1971,8 +1968,8 @@ function spawnEnemyWave() {
     ],
     10: [ // FINAL WAVE (Heavy hybrid of advanced types)
       [30, 0.5, 'corona_bomber'],
-      [60, 0.2, 'prominence_shield'],
-      [60, 0.8, 'prominence_shield'],
+      [60, 0.2, 'waver'],
+      [60, 0.8, 'waver'],
       [100, 0.5, 'splitter'],
       [130, 0.3, 'suicider'],
       [130, 0.7, 'suicider'],

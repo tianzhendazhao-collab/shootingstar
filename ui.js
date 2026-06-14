@@ -210,8 +210,18 @@ function victory() {
   shakeTime = 0;
   document.getElementById('viewport').classList.remove('shake');
 
+  // Converted gold from final score (1% of score)
+  const goldEarned = Math.round(score * 0.01);
+  addGold(goldEarned, BASE_WIDTH / 2, BASE_HEIGHT / 2);
+
   document.getElementById('finalScoreWin').textContent = score.toLocaleString();
   document.getElementById('finalGrazeWin').textContent = grazeCount;
+
+  const goldEl = document.getElementById('victoryGold');
+  if (goldEl) {
+    goldEl.textContent = `+${goldEarned.toLocaleString()} G`;
+  }
+
   document.getElementById('victoryOverlay').classList.remove('hidden');
   const pauseOverlay = document.getElementById('pauseOverlay');
   if (pauseOverlay) pauseOverlay.classList.add('hidden');
@@ -512,9 +522,18 @@ function stageClear() {
     localStorage.setItem('danmaku_story_unlocked', Math.min(15, nextStageIdx));
   }
 
+  // Converted gold from stage clear score (1% of score)
+  const goldEarned = Math.round(score * 0.01);
+  addGold(goldEarned, BASE_WIDTH / 2, BASE_HEIGHT / 2);
+
   document.getElementById('stageClearTitle').textContent = `STAGE ${currentStage} CLEARED`;
   document.getElementById('stageClearScore').textContent = score.toLocaleString();
   document.getElementById('stageClearGraze').textContent = grazeCount;
+
+  const goldEl = document.getElementById('stageClearGold');
+  if (goldEl) {
+    goldEl.textContent = `+${goldEarned.toLocaleString()} G`;
+  }
 
   document.getElementById('stageClearOverlay').classList.remove('hidden');
   const pauseOverlay = document.getElementById('pauseOverlay');

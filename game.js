@@ -82,6 +82,11 @@ requestAnimationFrame(gameLoop);
 // INPUT & MOUSE EVENT COORDINATOR
 // ----------------------------------------------------
 
+// Prevent default browser context menu on right-click
+window.addEventListener('contextmenu', (e) => {
+  e.preventDefault();
+});
+
 window.addEventListener('mousemove', (e) => {
   if (gameState !== STATES.PLAYING && gameState !== STATES.BOSS_BATTLE && gameState !== STATES.BOSS_WARNING) return;
 

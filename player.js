@@ -126,7 +126,11 @@ class Player {
       // Deploy drone helper
       if (this.droneCooldown <= 0) {
         const droneOwner = isMultiplayer ? myPlayerIndex : 1;
-        playerDrones.push(new SummonedDrone(this.x, this.y, this.powerLevel, droneOwner));
+        const count = this.powerLevel; // spawn count based on power level: LV1 (1), LV2 (2), LV3 (3)
+        for (let i = 0; i < count; i++) {
+          const offsetX = (i - (count - 1) / 2) * 25;
+          playerDrones.push(new SummonedDrone(this.x + offsetX, this.y, this.powerLevel, droneOwner));
+        }
         this.droneCooldown = 150; // deploy every 2.5 seconds
         
         if (isMultiplayer && socket && socket.readyState === WebSocket.OPEN) {
@@ -274,6 +278,20 @@ class Player {
     } else {
       this.invincible = true;
       this.invincibleTimer = 120; // 2 seconds at 60 FPS
+    }
+
+    // Immediate state synchronization after damage or death to update other players
+    if (isMultiplayer && socket && socket.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify({
+        type: 'sync',
+        x: this.x,
+        y: this.y,
+        selectedShip: this.selectedShip,
+        powerLevel: this.powerLevel,
+        shieldTimer: this.shieldTimer,
+        invincible: this.invincible,
+        lives: this.lives
+      }));
     }
   }
 
@@ -661,6 +679,7 @@ class SummonedDrone {
     this.powerLevel = powerLevel;
     this.ownerIndex = ownerIndex;
     this.color = isMultiplayer ? PLAYER_COLORS[ownerIndex] : '#39ff14';
+    this.angle = -Math.PI / 2; // Initialize angle pointing up
   }
 
   update() {
@@ -702,17 +721,30 @@ class SummonedDrone {
       }
     }
 
-    // AI: Float towards target enemy, hovering 100px BELOW it
+    // AI: slowly charge/rush towards target enemy
     if (target) {
       const destX = target.x;
-      const destY = Math.min(BASE_HEIGHT - 50, target.y + 100);
+      const destY = target.y;
       
-      this.vx += (destX - this.x) * 0.05;
-      this.vy += (destY - this.y) * 0.05;
+      const dx = destX - this.x;
+      const dy = destY - this.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
       
-      // Decelerate drift
-      this.vx *= 0.85;
-      this.vy *= 0.85;
+      if (dist > 0) {
+        const accel = 0.15;
+        this.vx += (dx / dist) * accel;
+        this.vy += (dy / dist) * accel;
+      }
+      
+      // Drag/cap speed to make it slowly charge/rush
+      const maxSpeed = 2.0;
+      const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+      if (speed > maxSpeed) {
+        this.vx = (this.vx / speed) * maxSpeed;
+        this.vy = (this.vy / speed) * maxSpeed;
+      }
+      
+      this.angle = Math.atan2(dy, dx);
     } else {
       // Just float slowly above owner
       const owner = (this.ownerIndex === myPlayerIndex) ? player : otherPlayers[this.ownerIndex];
@@ -723,6 +755,13 @@ class SummonedDrone {
         this.vy += (destY - this.y) * 0.03;
         this.vx *= 0.88;
         this.vy *= 0.88;
+      }
+      
+      const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+      if (speed > 0.2) {
+        this.angle = Math.atan2(this.vy, this.vx);
+      } else {
+        this.angle = -Math.PI / 2;
       }
     }
 
@@ -739,61 +778,108 @@ class SummonedDrone {
 
   shoot(target) {
     Sound.playShoot();
-    const bSpeed = 10;
-    
-    // Shoot straight down or towards target
-    let tx = 0;
-    let ty = -bSpeed; // Fires UP! (friendly bullets fire UP)
+    const bSpeed = 8; // Slightly slower speed for high density friendly bullets
+    const bulletColor = isMultiplayer ? PLAYER_COLORS[this.ownerIndex] : '#39ff14';
+    const isRemote = this.ownerIndex !== myPlayerIndex;
+
+    // Base angle of shot (target or straight up)
+    let baseAngle = -Math.PI / 2;
     if (target) {
       const dx = target.x - this.x;
       const dy = target.y - this.y;
-      const dist = Math.sqrt(dx*dx + dy*dy);
-      if (dist > 0) {
-        tx = (dx / dist) * bSpeed;
-        ty = (dy / dist) * bSpeed;
-      }
+      baseAngle = Math.atan2(dy, dx);
     }
 
-    const bulletColor = isMultiplayer ? PLAYER_COLORS[this.ownerIndex] : '#39ff14';
-    const isRemote = this.ownerIndex !== myPlayerIndex;
-    spawnFriendlyBullet(this.x, this.y, tx, ty, 'normal', bulletColor, this.powerLevel, isRemote);
+    // Number of bullets is fixed to a 3-way shot for balance
+    const count = 3;
+    const spread = 12 * Math.PI / 180; // 12 degrees spread
+
+    for (let i = 0; i < count; i++) {
+      const angle = baseAngle + (i - (count - 1) / 2) * spread;
+      const vx = Math.cos(angle) * bSpeed;
+      const vy = Math.sin(angle) * bSpeed;
+      spawnFriendlyBullet(this.x, this.y, vx, vy, 'normal', bulletColor, this.powerLevel, isRemote);
+    }
     
     // Power level controls fire rate
-    this.shootCooldown = this.powerLevel === 1 ? 20 : this.powerLevel === 2 ? 15 : 10;
+    this.shootCooldown = this.powerLevel === 1 ? 24 : this.powerLevel === 2 ? 18 : 12;
+  }
+
+  explodeOnCrash(target) {
+    Sound.playExplode();
+    
+    // Deal damage based on powerLevel
+    const crashDamage = 10 + this.powerLevel * 10; // LV1: 20, LV2: 30, LV3: 40 damage!
+    target.takeDamage(crashDamage);
+    
+    if (isMultiplayer) {
+      if (target === boss) {
+        socket.send(JSON.stringify({
+          type: 'bossDamage',
+          damage: crashDamage
+        }));
+      } else {
+        socket.send(JSON.stringify({
+          type: 'enemyDamage',
+          enemyId: target.id,
+          damage: crashDamage
+        }));
+      }
+    }
+    
+    // Spawn explosion particles
+    for (let i = 0; i < 15; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const sp = Math.random() * 4 + 1;
+      particles.push(new Particle(this.x, this.y, Math.cos(angle) * sp, Math.sin(angle) * sp, Math.random() * 3 + 1, this.color, 0.04));
+    }
   }
 
   draw() {
+    ctx.save();
+    ctx.translate(this.x, this.y);
+    ctx.rotate(this.angle + Math.PI / 2);
+
     ctx.strokeStyle = this.color;
     ctx.fillStyle = '#010f05';
     ctx.lineWidth = 1.5;
     
     // Small delta wing subship shape
     ctx.beginPath();
-    ctx.moveTo(this.x, this.y - 8);
-    ctx.lineTo(this.x - 8, this.y + 6);
-    ctx.lineTo(this.x, this.y + 2);
-    ctx.lineTo(this.x + 8, this.y + 6);
+    ctx.moveTo(0, -8);
+    ctx.lineTo(-8, 6);
+    ctx.lineTo(0, 2);
+    ctx.lineTo(8, 6);
     ctx.closePath();
     ctx.fill();
     ctx.stroke();
 
     // Center glow dot
     ctx.beginPath();
-    ctx.arc(this.x, this.y, 2, 0, Math.PI * 2);
+    ctx.arc(0, 0, 2, 0, Math.PI * 2);
     ctx.fillStyle = '#fff';
     ctx.fill();
 
     // Thruster flame
     if (Math.random() < 0.5) {
+      const flameAngle = this.angle + Math.PI;
+      const fx = Math.cos(flameAngle) * 8;
+      const fy = Math.sin(flameAngle) * 8;
+      const fvx = Math.cos(flameAngle) * (Math.random() * 2 + 1) + (Math.random() * 0.6 - 0.3);
+      const fvy = Math.sin(flameAngle) * (Math.random() * 2 + 1) + (Math.random() * 0.6 - 0.3);
+      
+      // Spawn globally to let particles drift naturally in world space
       particles.push(new Particle(
-        this.x,
-        this.y + 8,
-        -this.vx * 0.2 + (Math.random() * 0.6 - 0.3),
-        Math.random() * 2 + 1,
+        this.x + fx,
+        this.y + fy,
+        fvx,
+        fvy,
         2,
         '#ffb700',
         0.1
       ));
     }
+
+    ctx.restore();
   }
 }

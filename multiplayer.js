@@ -168,8 +168,12 @@ function handleServerMessage(data) {
       break;
 
     case 'spawnDrone': {
-      const d = new SummonedDrone(data.x, data.y, data.powerLevel, data.senderIndex);
-      playerDrones.push(d);
+      const count = data.powerLevel || 1;
+      for (let i = 0; i < count; i++) {
+        const offsetX = (i - (count - 1) / 2) * 25;
+        const d = new SummonedDrone(data.x + offsetX, data.y, data.powerLevel, data.senderIndex);
+        playerDrones.push(d);
+      }
       break;
     }
 

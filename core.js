@@ -123,8 +123,8 @@ try {
 // Ships database config
 const SHIPS = {
   default: { id: 'default', name: 'NEON FIGHTER', cost: 0, desc: '正面＋角度付きの直線ネオン弾を放つ初期機体。' },
-  homing: { id: 'homing', name: 'HOMING STRIKER', cost: 5000, desc: '敵を自動で追従するプラズマ弾を発射する。' },
-  split: { id: 'split', name: 'STARDUST SPLITTER', cost: 8000, desc: '正面に巨大なエネルギー球を射出し、敵に当たると爆発。' },
+  split: { id: 'split', name: 'STARDUST SPLITTER', cost: 5000, desc: '正面に巨大なエネルギー球を射出し、敵に当たると爆発。' },
+  homing: { id: 'homing', name: 'HOMING STRIKER', cost: 8000, desc: '敵を自動で追従するプラズマ弾を発射する。' },
   drone: { id: 'drone', name: 'DRONE COMMANDER', cost: 12000, desc: 'ミニドローンを召喚し、数秒間敵を自動攻撃。' }
 };
 
